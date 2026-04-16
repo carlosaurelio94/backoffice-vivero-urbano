@@ -13,7 +13,31 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className="h-full" suppressHydrationWarning>
-      <body className={`${inter.className} h-full bg-gray-50 text-gray-900 antialiased`}>
+      {/*
+        suppressHydrationWarning en <html> es necesario porque el hook useTheme
+        agrega/quita la clase "dark" en el cliente — evita el warning de hidratación.
+
+        Este script inline previene el "flash" de tema incorrecto antes de que
+        React hidrate. Se ejecuta de forma síncrona antes de que el browser pinte.
+      */}
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var saved = localStorage.getItem('theme');
+                  var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  if (saved === 'dark' || (!saved && prefersDark)) {
+                    document.documentElement.classList.add('dark');
+                  }
+                } catch(e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body className={`${inter.className} h-full antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

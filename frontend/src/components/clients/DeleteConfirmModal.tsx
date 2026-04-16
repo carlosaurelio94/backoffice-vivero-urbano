@@ -1,0 +1,52 @@
+'use client';
+
+import { Modal }  from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
+import { useDeleteClient } from '@/hooks/useClients';
+import type { Client } from '@/types';
+
+interface DeleteConfirmModalProps {
+  open:    boolean;
+  onClose: () => void;
+  client:  Client | null;
+}
+
+export function DeleteConfirmModal({ open, onClose, client }: DeleteConfirmModalProps) {
+  const deleteMutation = useDeleteClient();
+
+  const handleDelete = async () => {
+    if (!client) return;
+    await deleteMutation.mutateAsync(client.id);
+    onClose();
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="Eliminar cliente" size="sm">
+      <div className="flex flex-col gap-4">
+        <p className="text-sm text-gray-600">
+          ¿Estás seguro de que querés eliminar a{' '}
+          <span className="font-semibold text-gray-900">{client?.name}</span>?
+          Esta acción no se puede deshacer.
+        </p>
+        <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            disabled={deleteMutation.isPending}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            loading={deleteMutation.isPending}
+            onClick={handleDelete}
+          >
+            Eliminar
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
