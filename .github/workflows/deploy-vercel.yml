@@ -1,0 +1,60 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Deploy automático a Vercel (GRATUITO)
+# - Push a main  → deploy a producción
+# - Push a test  → deploy a preview/staging
+# - Push a dev   → solo CI, sin deploy
+#
+# SETUP REQUERIDO (una sola vez):
+# 1. Conectá el repo en vercel.com → New Project → Import from GitHub
+# 2. En GitHub → Settings → Secrets → Actions, agregá:
+#    - VERCEL_TOKEN       (Vercel → Account Settings → Tokens)
+#    - VERCEL_ORG_ID      (Vercel → .vercel/project.json después de vercel link)
+#    - VERCEL_PROJECT_ID  (ídem)
+#    - NEXT_PUBLIC_SUPABASE_URL
+#    - NEXT_PUBLIC_SUPABASE_ANON_KEY
+# ─────────────────────────────────────────────────────────────────────────────
+name: Deploy Frontend → Vercel
+
+on:
+  push:
+    branches: [main, test]
+    paths:
+      - 'frontend/**'
+
+jobs:
+  deploy:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Instalar Vercel CLI
+        run: npm install -g vercel
+
+      - name: Deploy a producción (main)
+        if: github.ref == 'refs/heads/main'
+        run: vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Deploy a staging (test)
+        if: github.ref == 'refs/heads/test'
+        run: vercel --token=${{ secrets.VERCEL_TOKEN }} --yes
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

@@ -1,0 +1,20 @@
+# Frontend
+frontend/.env.local
+frontend/.env*.local
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Backend
+backend/target/
+backend/*.jar
+backend/.mvn/
+
+# Docker
+.env
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+*.swp

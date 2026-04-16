@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: backoffice-vivero-urbano
+
+  datasource:
+    # Conecta a la base de datos PostgreSQL de Supabase (o local vía Docker)
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/vivero_urbano}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      # 'validate' en producción: no modifica el schema, solo lo valida contra las entidades
+      # Cambiá a 'create-drop' solo para desarrollo inicial
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false  # Buena práctica: evitar LazyInitializationException silenciosas
+
+server:
+  port: 8080
+
+# Configuración de Swagger UI
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+  api-docs:
+    path: /v3/api-docs
+
+# CORS: permite peticiones desde el frontend Next.js
+app:
+  cors:
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000}
