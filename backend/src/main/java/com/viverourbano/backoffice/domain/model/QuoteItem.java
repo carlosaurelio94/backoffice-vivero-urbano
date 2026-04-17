@@ -13,7 +13,7 @@ public record QuoteItem(
         UUID quoteId,
         UUID clientId,
         UUID informationId,
-        BigDecimal quantity,
+        int quantity,
         String product,
         BigDecimal unitPrice,
         BigDecimal totalPrice,
