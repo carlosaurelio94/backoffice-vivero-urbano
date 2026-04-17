@@ -1,6 +1,7 @@
 'use client';
 
 import { use } from 'react';
+import type React from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Calendar, Hash, Layers } from 'lucide-react';
@@ -40,7 +41,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
     );
   }
 
-  const infoCards = [
+  const infoCards: { icon: React.ElementType | null; label: string; value: string }[] = [
     { icon: Hash,     label: 'N° presupuesto', value: `#${String(quote.quote_number).padStart(4, '0')}` },
     { icon: Calendar, label: 'Fecha',           value: formatDate(quote.quote_date) },
     { icon: Layers,   label: 'Ítems',           value: String(quote.item_count) },
@@ -73,7 +74,10 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {infoCards.map(({ icon: Icon, label, value }) => (
           <div key={label} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400">{label}</p>
+            <div className="flex items-center gap-1.5">
+              {Icon && <Icon className="h-3.5 w-3.5 text-gray-400 dark:text-slate-500" />}
+              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-slate-400">{label}</p>
+            </div>
             <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-slate-100">{value}</p>
           </div>
         ))}

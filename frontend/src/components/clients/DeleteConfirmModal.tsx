@@ -23,12 +23,12 @@ export function DeleteConfirmModal({ open, onClose, client }: DeleteConfirmModal
   return (
     <Modal open={open} onClose={onClose} title="Eliminar cliente" size="sm">
       <div className="flex flex-col gap-4">
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-gray-600 dark:text-slate-300">
           ¿Estás seguro de que querés eliminar a{' '}
-          <span className="font-semibold text-gray-900">{client?.name}</span>?
+          <span className="font-semibold text-gray-900 dark:text-slate-100">{client?.name}</span>?
           Esta acción no se puede deshacer.
         </p>
-        <div className="flex justify-end gap-3 border-t border-gray-100 pt-4">
+        <div className="flex justify-end gap-3 border-t border-gray-100 pt-4 dark:border-slate-700">
           <Button
             type="button"
             variant="secondary"
