@@ -8,7 +8,7 @@ RUN mvn dependency:go-offline -q
 
 # Copiar fuentes y compilar
 COPY src/ src/
-RUN mvn package -DskipTests -q
+RUN mvn package -DskipTests
 
 # ── Stage 2: runtime ─────────────────────────────────────────
 FROM eclipse-temurin:21-jre-alpine
