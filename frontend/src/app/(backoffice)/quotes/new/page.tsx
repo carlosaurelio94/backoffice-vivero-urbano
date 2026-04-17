@@ -1,18 +1,137 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, ClipboardPaste } from 'lucide-react';
 import { useCreateQuote, useNextQuoteNumber } from '@/hooks/useQuotes';
 import { useClients } from '@/hooks/useClients';
 import { useQuoteInformation } from '@/hooks/useQuoteInformation';
 import { Input }  from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
+import { Modal }  from '@/components/ui/Modal';
 import { formatCurrency } from '@/lib/utils';
+
+// ─── Parser de texto libre ────────────────────────────────────────────────────
+// Formato: "cantidad nombre_del_producto precio"
+// Ejemplo: "3 pandanus 2.5" → { quantity: 3, product: "pandanus", unit_price: 2.5 }
+function parseItemsText(text: string): { quantity: number; product: string; unit_price: number; total_price: number }[] {
+  return text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .flatMap(line => {
+      const tokens = line.split(/\s+/);
+      if (tokens.length < 3) return [];
+
+      const quantity  = parseFloat(tokens[0]);
+      const unitPrice = parseFloat(tokens[tokens.length - 1]);
+
+      if (isNaN(quantity) || isNaN(unitPrice)) return [];
+
+      const product = tokens.slice(1, -1).join(' ');
+      if (!product) return [];
+
+      return [{ quantity, product, unit_price: unitPrice, total_price: quantity * unitPrice }];
+    });
+}
+
+// ─── Modal de importación ─────────────────────────────────────────────────────
+function ImportModal({
+  open,
+  onClose,
+  onImport,
+}: {
+  open:     boolean;
+  onClose:  () => void;
+  onImport: (items: { quantity: number; product: string; unit_price: number; total_price: number }[]) => void;
+}) {
+  const [text, setText]     = useState('');
+  const [preview, setPreview] = useState<ReturnType<typeof parseItemsText>>([]);
+
+  const handleChange = (val: string) => {
+    setText(val);
+    setPreview(parseItemsText(val));
+  };
+
+  const handleImport = () => {
+    if (preview.length === 0) return;
+    onImport(preview);
+    setText('');
+    setPreview([]);
+    onClose();
+  };
+
+  return (
+    <Modal open={open} onClose={onClose} title="Importar ítems" size="lg">
+      <div className="flex flex-col gap-4">
+        <div>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mb-2">
+            Pegá la lista con el formato: <code className="rounded bg-gray-100 px-1 dark:bg-slate-700">cantidad producto precio</code> — una línea por ítem.
+          </p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 mb-3">
+            Ej: <span className="font-mono">3 pandanus 2.5</span> · <span className="font-mono">1 ficus 150</span> · <span className="font-mono">5 metros 2x5 50</span>
+          </p>
+          <textarea
+            rows={8}
+            value={text}
+            onChange={e => handleChange(e.target.value)}
+            placeholder={'1 ficus 150\n3 pandanus 2.5\n5 metros 2x5 50'}
+            className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono
+                       placeholder:text-gray-300 focus:border-green-500 focus:outline-none focus:ring-1
+                       focus:ring-green-500 resize-y
+                       dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder:text-slate-600"
+          />
+        </div>
+
+        {/* Preview */}
+        {preview.length > 0 && (
+          <div className="rounded-lg border border-gray-200 dark:border-slate-700 overflow-hidden">
+            <div className="bg-gray-50 dark:bg-slate-700/50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">
+              Vista previa — {preview.length} ítem{preview.length !== 1 ? 's' : ''} detectado{preview.length !== 1 ? 's' : ''}
+            </div>
+            <table className="min-w-full divide-y divide-gray-100 dark:divide-slate-700 text-sm">
+              <thead className="bg-white dark:bg-slate-800">
+                <tr>
+                  {['Producto', 'Cant.', 'Precio unit.', 'Total'].map(h => (
+                    <th key={h} className={`px-4 py-2 text-xs font-medium text-gray-500 dark:text-slate-400 ${h === 'Producto' ? 'text-left' : 'text-right'}`}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-slate-700 bg-white dark:bg-slate-800">
+                {preview.map((item, i) => (
+                  <tr key={i}>
+                    <td className="px-4 py-2 text-gray-900 dark:text-slate-100">{item.product}</td>
+                    <td className="px-4 py-2 text-right text-gray-600 dark:text-slate-300">{item.quantity}</td>
+                    <td className="px-4 py-2 text-right text-gray-600 dark:text-slate-300">{item.unit_price}</td>
+                    <td className="px-4 py-2 text-right font-semibold text-gray-900 dark:text-slate-100">{item.total_price.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {text.length > 0 && preview.length === 0 && (
+          <p className="text-sm text-amber-600 dark:text-amber-400">
+            No se detectaron ítems válidos. Revisá el formato: <span className="font-mono">cantidad producto precio</span>
+          </p>
+        )}
+
+        <div className="flex justify-end gap-3 border-t border-gray-100 pt-4 dark:border-slate-700">
+          <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button onClick={handleImport} disabled={preview.length === 0}>
+            <ClipboardPaste className="h-4 w-4" />
+            Importar {preview.length > 0 ? `${preview.length} ítem${preview.length !== 1 ? 's' : ''}` : ''}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
 
 const itemSchema = z.object({
   product:     z.string().min(1, 'Requerido'),
@@ -55,7 +174,12 @@ export default function NewQuotePage() {
     },
   });
 
-  const { fields, append, remove } = useFieldArray({ control, name: 'items' });
+  const { fields, append, remove, replace } = useFieldArray({ control, name: 'items' });
+  const [importOpen, setImportOpen] = useState(false);
+
+  const handleImport = (items: { quantity: number; product: string; unit_price: number; total_price: number }[]) => {
+    replace(items);
+  };
 
   useEffect(() => { if (nextNumber) setValue('quote_number', nextNumber); }, [nextNumber, setValue]);
 
@@ -133,9 +257,14 @@ export default function NewQuotePage() {
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-slate-700">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-slate-400">Ítems ({fields.length})</h2>
-            <Button type="button" variant="secondary" size="sm" onClick={() => append(emptyItem)}>
-              <Plus className="h-4 w-4" />Agregar ítem
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="secondary" size="sm" onClick={() => setImportOpen(true)}>
+                <ClipboardPaste className="h-4 w-4" />Importar lista
+              </Button>
+              <Button type="button" variant="secondary" size="sm" onClick={() => append(emptyItem)}>
+                <Plus className="h-4 w-4" />Agregar ítem
+              </Button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -194,6 +323,8 @@ export default function NewQuotePage() {
           <Button type="submit" loading={createMutation.isPending}>Crear presupuesto</Button>
         </div>
       </form>
+
+      <ImportModal open={importOpen} onClose={() => setImportOpen(false)} onImport={handleImport} />
     </div>
   );
 }
