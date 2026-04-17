@@ -22,7 +22,7 @@ spring:
     open-in-view: false  # Buena práctica: evitar LazyInitializationException silenciosas
 
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 # Configuración de Swagger UI
 springdoc:
