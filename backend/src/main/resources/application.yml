@@ -32,6 +32,16 @@ springdoc:
   api-docs:
     path: /v3/api-docs
 
+# Actuator — solo exponer health públicamente
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
 # CORS: permite peticiones desde el frontend Next.js
 app:
   cors:

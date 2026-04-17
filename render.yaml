@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: backoffice-vivero-urbano-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    region: oregon
+
+    envVars:
+      - key: DB_URL
+        sync: false          # Lo ingresás manualmente en el dashboard de Render
+
+      - key: DB_USERNAME
+        sync: false
+
+      - key: DB_PASSWORD
+        sync: false
+
+      - key: ALLOWED_ORIGINS
+        # Reemplazá con la URL real de tu Vercel una vez deployado
+        value: https://bo-vivero-urbano.vercel.app
+
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: validate
+
+    healthCheckPath: /actuator/health
