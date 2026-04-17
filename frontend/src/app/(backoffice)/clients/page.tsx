@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Search, Pencil, Trash2, UserPlus } from 'lucide-react';
 import { useClients } from '@/hooks/useClients';
 import { ClientForm } from '@/components/clients/ClientForm';
@@ -44,6 +45,7 @@ export default function ClientsPage() {
 
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 1;
 
+  const router = useRouter();
   const openCreate = useCallback(() => { setSelected(null); setFormOpen(true); }, []);
   const openEdit   = useCallback((c: Client) => { setSelected(c); setFormOpen(true); }, []);
   const openDelete = useCallback((c: Client) => { setSelected(c); setDeleteOpen(true); }, []);
@@ -122,19 +124,21 @@ export default function ClientsPage() {
               )}
 
               {!isLoading && data?.data.map((client) => (
-                <tr key={client.id} className="hover:bg-gray-50 transition-colors dark:hover:bg-slate-700/50">
+                <tr key={client.id}
+                  className="hover:bg-gray-50 transition-colors cursor-pointer dark:hover:bg-slate-700/50"
+                  onClick={() => router.push(`/clients/${client.id}`)}>
                   <td className="px-6 py-4 font-medium text-gray-900 dark:text-slate-100">{client.name}</td>
                   <td className="px-6 py-4 text-sm text-gray-500 dark:text-slate-400">{client.rif ?? '—'}</td>
                   <td className="px-6 py-4 text-sm text-gray-500 dark:text-slate-400">{client.phone ?? '—'}</td>
                   <td className="px-6 py-4"><Badge variant={client.client_status} /></td>
                   <td className="px-6 py-4 text-sm text-gray-500 dark:text-slate-400">{formatDate(client.created_at)}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-2">
                       <button onClick={() => openEdit(client)}
                         className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors dark:hover:bg-slate-700 dark:hover:text-slate-200">
                         <Pencil className="h-4 w-4" />
                       </button>
-                      <button onClick={() => openDelete(client)}
+                      <button onClick={(e) => { e.stopPropagation(); openDelete(client); }}
                         className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors dark:hover:bg-red-900/30 dark:hover:text-red-400">
                         <Trash2 className="h-4 w-4" />
                       </button>

@@ -1,18 +1,16 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { getClients, createClient, updateClient, deleteClient } from '@/lib/clients';
 import type { CreateClientDTO, UpdateClientDTO } from '@/types';
 
-// ─── Query Keys ───────────────────────────────────────────────────────────────
-// Centralizar keys evita typos y facilita invalidaciones granulares
 export const clientKeys = {
   all:    ['clients'] as const,
   list:   (params: object) => ['clients', 'list', params] as const,
   detail: (id: string)     => ['clients', 'detail', id] as const,
 };
 
-// ─── List ─────────────────────────────────────────────────────────────────────
 interface UseClientsParams {
   page: number;
   pageSize: number;
@@ -24,44 +22,42 @@ export function useClients(params: UseClientsParams) {
   return useQuery({
     queryKey: clientKeys.list(params),
     queryFn:  () => getClients(params),
-    placeholderData: (prev) => prev, // mantiene datos anteriores mientras carga página nueva
+    placeholderData: (prev) => prev,
   });
 }
 
-// ─── Create ───────────────────────────────────────────────────────────────────
 export function useCreateClient() {
   const qc = useQueryClient();
-
   return useMutation({
     mutationFn: (dto: CreateClientDTO) => createClient(dto),
     onSuccess: () => {
-      // Invalida toda la lista para forzar re-fetch
       qc.invalidateQueries({ queryKey: clientKeys.all });
+      toast.success('Cliente creado');
     },
+    onError: () => toast.error('No se pudo crear el cliente'),
   });
 }
 
-// ─── Update ───────────────────────────────────────────────────────────────────
 export function useUpdateClient() {
   const qc = useQueryClient();
-
   return useMutation({
-    mutationFn: ({ id, dto }: { id: string; dto: UpdateClientDTO }) =>
-      updateClient(id, dto),
+    mutationFn: ({ id, dto }: { id: string; dto: UpdateClientDTO }) => updateClient(id, dto),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: clientKeys.all });
+      toast.success('Cliente actualizado');
     },
+    onError: () => toast.error('No se pudo actualizar el cliente'),
   });
 }
 
-// ─── Delete (soft) ────────────────────────────────────────────────────────────
 export function useDeleteClient() {
   const qc = useQueryClient();
-
   return useMutation({
     mutationFn: (id: string) => deleteClient(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: clientKeys.all });
+      toast.success('Cliente eliminado');
     },
+    onError: () => toast.error('No se pudo eliminar el cliente'),
   });
 }

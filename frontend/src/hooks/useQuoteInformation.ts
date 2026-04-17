@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   getQuoteInformationList,
   createQuoteInformation,
@@ -14,18 +15,15 @@ export const infoKeys = {
 };
 
 export function useQuoteInformation() {
-  return useQuery({
-    queryKey: infoKeys.list,
-    queryFn:  getQuoteInformationList,
-  });
+  return useQuery({ queryKey: infoKeys.list, queryFn: getQuoteInformationList });
 }
 
 export function useCreateQuoteInformation() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (dto: { name: string; information: string }) =>
-      createQuoteInformation(dto),
-    onSuccess: () => qc.invalidateQueries({ queryKey: infoKeys.all }),
+    mutationFn: (dto: { name: string; information: string }) => createQuoteInformation(dto),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: infoKeys.all }); toast.success('Preset creado'); },
+    onError:   () => toast.error('No se pudo crear el preset'),
   });
 }
 
@@ -34,7 +32,8 @@ export function useUpdateQuoteInformation() {
   return useMutation({
     mutationFn: ({ id, dto }: { id: string; dto: { name?: string; information?: string } }) =>
       updateQuoteInformation(id, dto),
-    onSuccess: () => qc.invalidateQueries({ queryKey: infoKeys.all }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: infoKeys.all }); toast.success('Preset actualizado'); },
+    onError:   () => toast.error('No se pudo actualizar el preset'),
   });
 }
 
@@ -42,6 +41,7 @@ export function useDeleteQuoteInformation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteQuoteInformation(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: infoKeys.all }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: infoKeys.all }); toast.success('Preset eliminado'); },
+    onError:   () => toast.error('No se pudo eliminar el preset'),
   });
 }

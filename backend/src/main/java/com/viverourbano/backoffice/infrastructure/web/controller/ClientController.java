@@ -2,6 +2,7 @@ package com.viverourbano.backoffice.infrastructure.web.controller;
 
 import com.viverourbano.backoffice.application.dto.ClientDTO;
 import com.viverourbano.backoffice.application.dto.CreateClientRequest;
+import com.viverourbano.backoffice.application.dto.UpdateClientRequest;
 import com.viverourbano.backoffice.application.dto.PagedResponse;
 import com.viverourbano.backoffice.application.usecase.ClientUseCase;
 import com.viverourbano.backoffice.domain.model.ClientStatus;
@@ -54,6 +55,16 @@ public class ClientController {
     ) {
         ClientDTO created = clientUseCase.create(request, deviceId);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PatchMapping("/{id}")
+    @Operation(summary = "Actualizar datos de un cliente")
+    public ResponseEntity<ClientDTO> update(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateClientRequest request,
+            @RequestHeader(value = "X-Device-Id", defaultValue = "unknown") String deviceId
+    ) {
+        return ResponseEntity.ok(clientUseCase.update(id, request, deviceId));
     }
 
     @DeleteMapping("/{id}")

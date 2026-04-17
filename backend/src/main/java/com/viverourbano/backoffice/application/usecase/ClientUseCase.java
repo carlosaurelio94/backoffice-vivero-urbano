@@ -2,6 +2,7 @@ package com.viverourbano.backoffice.application.usecase;
 
 import com.viverourbano.backoffice.application.dto.ClientDTO;
 import com.viverourbano.backoffice.application.dto.CreateClientRequest;
+import com.viverourbano.backoffice.application.dto.UpdateClientRequest;
 import com.viverourbano.backoffice.application.dto.PagedResponse;
 import com.viverourbano.backoffice.application.mapper.ClientMapper;
 import com.viverourbano.backoffice.domain.model.Client;
@@ -61,6 +62,25 @@ public class ClientUseCase {
                 deviceId
         );
         return clientMapper.toDto(clientRepository.save(client));
+    }
+
+    /** Actualiza los campos presentes en el request (PATCH semántico). */
+    public ClientDTO update(UUID id, UpdateClientRequest request, String deviceId) {
+        Client existing = clientRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Cliente no encontrado: " + id));
+
+        Client updated = new Client(
+                existing.id(),
+                request.name()         != null ? request.name()         : existing.name(),
+                request.address()      != null ? request.address()      : existing.address(),
+                request.rif()          != null ? request.rif()          : existing.rif(),
+                request.phone()        != null ? request.phone()        : existing.phone(),
+                request.clientStatus() != null ? request.clientStatus() : existing.clientStatus(),
+                existing.createdBy(), deviceId,
+                existing.createdAt(), java.time.Instant.now(),
+                false
+        );
+        return clientMapper.toDto(clientRepository.save(updated));
     }
 
     /**
