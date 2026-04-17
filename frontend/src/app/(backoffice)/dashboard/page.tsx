@@ -41,12 +41,22 @@ async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
     .filter((q) => q.currency === '$')
     .reduce((sum, q) => sum + (q.total_amount ?? 0), 0);
 
+  const recentQuotes: DashboardMetrics['recentQuotes'] = (recentRes.data ?? []).map((q) => ({
+    id:           q.id,
+    quote_number: q.quote_number,
+    quote_date:   q.quote_date,
+    total_amount: q.total_amount,
+    currency:     q.currency,
+    status:       q.status as QuoteStatus,
+    client:       Array.isArray(q.client) ? (q.client[0] ?? null) : (q.client ?? null),
+  }));
+
   return {
     totalClients:     clientsRes.count     ?? 0,
     quotesThisMonth:  quotesMonthRes.data?.length ?? 0,
     revenueThisMonth,
     pendingQuotes:    pendingRes.count     ?? 0,
-    recentQuotes:     (recentRes.data ?? []) as DashboardMetrics['recentQuotes'],
+    recentQuotes,
   };
 }
 
@@ -59,9 +69,14 @@ async function exportMetricsToCSV() {
 
   if (error || !data) return;
 
+  type ExportRow = { quote_number: number; quote_date: string; total_amount: number; currency: string; status: string; client: { name: string } | { name: string }[] | null };
+
   const headers = ['N°', 'Cliente', 'Fecha', 'Total', 'Moneda', 'Estado'];
-  const rows    = data.map((q: any) => [q.quote_number, q.client?.name ?? '', q.quote_date, q.total_amount, q.currency, q.status]);
-  const csv     = [headers, ...rows].map((row) => row.map((v: any) => `"${v}"`).join(',')).join('\n');
+  const rows    = (data as ExportRow[]).map((q) => {
+    const clientName = Array.isArray(q.client) ? (q.client[0]?.name ?? '') : (q.client?.name ?? '');
+    return [q.quote_number, clientName, q.quote_date, q.total_amount, q.currency, q.status];
+  });
+  const csv     = [headers, ...rows].map((row) => row.map((v) => `"${v}"`).join(',')).join('\n');
 
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url  = URL.createObjectURL(blob);
