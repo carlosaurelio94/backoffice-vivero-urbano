@@ -4,35 +4,51 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
+import { usePermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/lib/supabase';
+import type { Module } from '@/types/permissions';
 import {
   LayoutDashboard,
   Users,
   FileText,
   Settings,
+  ShieldCheck,
   Leaf,
   Sun,
   Moon,
   LogOut,
 } from 'lucide-react';
 
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard',     icon: LayoutDashboard },
-  { href: '/clients',   label: 'Clientes',       icon: Users },
-  { href: '/quotes',    label: 'Presupuestos',   icon: FileText },
-  { href: '/settings',  label: 'Configuración',  icon: Settings },
+interface NavItem {
+  href:    string;
+  label:   string;
+  icon:    React.ElementType;
+  module:  Module;
+}
+
+const navItems: NavItem[] = [
+  { href: '/dashboard', label: 'Dashboard',     icon: LayoutDashboard, module: 'dashboard'     },
+  { href: '/clients',   label: 'Clientes',       icon: Users,           module: 'clientes'      },
+  { href: '/quotes',    label: 'Presupuestos',   icon: FileText,        module: 'presupuestos'  },
+  { href: '/settings',  label: 'Configuración',  icon: Settings,        module: 'configuracion' },
+  { href: '/admin',     label: 'Administración', icon: ShieldCheck,     module: 'admin'         },
 ];
 
 export function Sidebar() {
   const pathname    = usePathname();
   const router      = useRouter();
   const { isDark, toggle } = useTheme();
+  const { canView, loading } = usePermissions();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/login');
     router.refresh();
   };
+
+  const visibleItems = loading
+    ? []
+    : navItems.filter((item) => canView(item.module));
 
   return (
     <aside className="flex h-full w-64 flex-col border-r border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-900">
@@ -50,7 +66,14 @@ export function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {loading && (
+          <div className="flex flex-col gap-2 px-3 py-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-9 animate-pulse rounded-lg bg-gray-100 dark:bg-slate-800" />
+            ))}
+          </div>
+        )}
+        {visibleItems.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
           return (
             <Link
@@ -70,7 +93,7 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer: versión + toggle */}
+      {/* Footer */}
       <div className="border-t border-gray-200 px-4 py-4 dark:border-slate-700">
         <button
           onClick={toggle}
