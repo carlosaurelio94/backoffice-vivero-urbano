@@ -5,6 +5,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.net.URI;
 import java.util.NoSuchElementException;
@@ -18,11 +19,21 @@ import java.util.NoSuchElementException;
 public class GlobalExceptionHandler {
 
     /**
-     * 404 — recurso no encontrado.
+     * 404 — recurso no encontrado (lógica de negocio).
      */
     @ExceptionHandler(NoSuchElementException.class)
     public ProblemDetail handleNotFound(NoSuchElementException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        problem.setType(URI.create("/errors/not-found"));
+        return problem;
+    }
+
+    /**
+     * 404 — ruta no registrada en ningún controller.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ProblemDetail handleNoRoute(NoResourceFoundException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "Ruta no encontrada");
         problem.setType(URI.create("/errors/not-found"));
         return problem;
     }
