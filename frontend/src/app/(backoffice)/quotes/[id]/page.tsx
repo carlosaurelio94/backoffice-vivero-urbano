@@ -4,8 +4,9 @@ import { use } from 'react';
 import type React from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Calendar, Hash, Layers } from 'lucide-react';
+import { ArrowLeft, Calendar, Hash, Layers, FileDown } from 'lucide-react';
 import { getQuoteById } from '@/lib/quotes';
+import { generateQuotePdf } from '@/lib/generateQuotePdf';
 import { Badge }  from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { formatDate, formatCurrency } from '@/lib/utils';
@@ -36,7 +37,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
     return (
       <div className="flex flex-col items-center gap-4 pt-16">
         <p className="text-gray-500 dark:text-slate-400">No se encontró el presupuesto.</p>
-        <Button variant="secondary" onClick={() => router.push('/quotes')}>Volver a la lista</Button>
+        <Button variant="secondary" onClick={() => router.back()}>Volver a la lista</Button>
       </div>
     );
   }
@@ -68,6 +69,10 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
             <p className="mt-0.5 text-sm text-gray-500 dark:text-slate-400">{quote.client?.name}</p>
           </div>
         </div>
+        <Button variant="secondary" onClick={() => generateQuotePdf(quote)}>
+          <FileDown className="h-4 w-4" />
+          Exportar PDF
+        </Button>
       </div>
 
       {/* Info cards */}

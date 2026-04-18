@@ -1,177 +1,136 @@
-# 🌿 Backoffice · Vivero Urbano
+# Backoffice — Vivero Urbano
 
-Sistema de gestión interna (CRM) para clientes y presupuestos del Vivero Urbano.
+Sistema de gestión interna para clientes y presupuestos de Vivero Urbano.
 
----
-
-## Stack tecnológico
-
-| Capa | Tecnología | Hosting gratuito |
-|------|-----------|-----------------|
-| Frontend | Next.js 14 · TypeScript · Tailwind CSS | Vercel |
-| Backend | Spring Boot 3.3 · Java 21 | Render / Railway (futuro) |
-| Base de datos | PostgreSQL via Supabase | Supabase (free tier) |
-| CI/CD | GitHub Actions | GitHub (free) |
-
----
-
-## Estructura del proyecto
+## Arquitectura
 
 ```
 backoffice-vivero-urbano/
-├── frontend/                  # Aplicación Next.js (App Router)
-│   ├── src/
-│   │   ├── app/               # Páginas y layouts (Next.js App Router)
-│   │   │   └── (backoffice)/  # Layout con sidebar
-│   │   │       ├── dashboard/ # Métricas generales
-│   │   │       ├── clients/   # Gestión de clientes
-│   │   │       ├── quotes/    # Gestión de presupuestos
-│   │   │       └── settings/  # Presets de texto
-│   │   ├── components/        # Componentes reutilizables
-│   │   ├── lib/               # Lógica de acceso a datos (Supabase)
-│   │   ├── types/             # Tipos TypeScript del dominio
-│   │   └── hooks/             # Custom hooks de React
-│   └── .env.local             # Variables de entorno (NO subir a git)
-│
-├── backend/                   # API REST con Spring Boot
-│   └── src/main/java/com/viverourbano/backoffice/
-│       ├── domain/            # Modelos de negocio e interfaces de repositorio
-│       ├── application/       # Casos de uso, DTOs y mappers
-│       └── infrastructure/    # Controladores REST, JPA, configuración
-│
-├── .github/workflows/         # CI/CD con GitHub Actions
-├── docker-compose.yml         # PostgreSQL local para desarrollo
-└── setup-repo.ps1             # Script de inicialización (correr una sola vez)
+├── frontend/          # Next.js 16 + Tailwind CSS + Supabase JS
+├── backend/           # Spring Boot 3.3 + Java 21 + JPA
+├── supabase/          # Schema SQL + políticas RLS
+└── .github/workflows/ # CI/CD (GitHub Actions)
 ```
 
----
+**Stack:**
+- **Frontend:** Next.js 16 (App Router), Tailwind CSS v4, TanStack Query v5, React Hook Form + Zod, Sonner, jsPDF
+- **Backend:** Spring Boot 3.3, Java 21, Spring Data JPA, MapStruct, Lombok, Springdoc OpenAPI
+- **Base de datos:** Supabase (PostgreSQL)
+- **Deploy:** Vercel (frontend) + Render (backend)
 
-## Ramas
+## Funcionalidades
 
-| Rama | Propósito | Deploy |
-|------|-----------|--------|
-| `dev` | Desarrollo activo | Solo CI |
-| `test` | Staging / QA | Vercel preview |
-| `main` | Producción | Vercel producción |
+- **Clientes** — CRUD completo, estados (prospecto / cliente), búsqueda y filtros
+- **Presupuestos** — creación con ítems, importación de lista por texto, cambio de estado inline, exportación PDF
+- **Configuración** — presets de texto informativo reutilizables en presupuestos
+- **Dashboard** — métricas del mes, actividad reciente, exportar CSV
+- **Dark mode** — toggle persistido en localStorage, sin flash al recargar
+- **Autenticación** — login con Supabase Auth, rutas protegidas por middleware
 
-**Flujo de trabajo:**
-```
-feature → dev → test (QA) → main (prod)
-```
+## Desarrollo local
 
----
+### Requisitos
 
-## Primeros pasos
+- Node.js 20+
+- Java 21 + Maven 3.9+
+- Cuenta de Supabase
 
-### 1. Clonar el repo
-
-```bash
-git clone https://github.com/carlosaurelio94/backoffice-vivero-urbano.git
-cd backoffice-vivero-urbano
-```
-
-### 2. Configurar variables de entorno del frontend
+### Frontend
 
 ```bash
 cd frontend
-cp .env.local.example .env.local
-# Editá .env.local con tus credenciales de Supabase
-```
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://dktdmcvglmjmacgynqci.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-anon-key-aqui
-```
-
-> Encontrás la anon key en: [Supabase Dashboard → Settings → API Keys](https://supabase.com/dashboard/project/dktdmcvglmjmacgynqci/settings/api-keys/legacy)
-
-### 3. Correr el frontend
-
-```bash
-cd frontend
+cp .env.example .env.local
+# Completar variables en .env.local
 npm install
 npm run dev
-# → http://localhost:3000
 ```
 
-### 5. Correr el backend (cuando esté listo)
+### Backend
 
 ```bash
 cd backend
-./mvnw spring-boot:run
-# → http://localhost:8080
-# → Swagger UI: http://localhost:8080/swagger-ui.html
+export DB_URL=jdbc:postgresql://db.xxx.supabase.co:5432/postgres
+export DB_USERNAME=postgres
+export DB_PASSWORD=tu_password
+export ALLOWED_ORIGINS=http://localhost:3000
+mvn spring-boot:run
 ```
 
----
+## Variables de entorno
 
-## Deploy en producción (gratuito)
+### Frontend (`frontend/.env.local`)
 
-### Frontend → Vercel
+| Variable | Descripción | Dónde encontrarla |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase | Supabase → Settings → API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key pública | Supabase → Settings → API |
+| `NEXT_PUBLIC_API_URL` | URL del backend (opcional) | URL de Render |
 
-1. Ir a [vercel.com](https://vercel.com) → New Project → Import `backoffice-vivero-urbano`
-2. Configurar el **Root Directory** como `frontend`
-3. Agregar las variables de entorno en Vercel:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-4. Cada push a `main` deploya automáticamente via GitHub Actions
+### Backend
 
-### Base de datos → Supabase
+| Variable | Descripción |
+|---|---|
+| `DB_URL` | `jdbc:postgresql://db.xxx.supabase.co:5432/postgres` |
+| `DB_USERNAME` | `postgres` |
+| `DB_PASSWORD` | Password de Supabase |
+| `ALLOWED_ORIGINS` | URL del frontend en Vercel |
 
-Ya configurada en [supabase.com](https://supabase.com) — proyecto `vivero_urbano`.
+## Base de datos
 
-### Backend → Render (próximamente)
+Aplicar el schema inicial:
 
-El backend Java se desplegará en [render.com](https://render.com) (free tier) cuando esté completo.
+```
+Supabase → SQL Editor → pegar supabase/schema.sql → Run
+```
 
----
+Activar Row Level Security (después de crear el usuario):
 
-## GitHub Actions — Secrets requeridos
+```
+Supabase → SQL Editor → pegar supabase/rls.sql → Run
+```
 
-Configurar en **GitHub → Settings → Secrets and variables → Actions**:
+Crear usuario del backoffice:
 
-| Secret | Descripción |
-|--------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key de Supabase (pública) |
-| `VERCEL_TOKEN` | Token de Vercel (Account Settings → Tokens) |
-| `VERCEL_ORG_ID` | ID de organización de Vercel |
-| `VERCEL_PROJECT_ID` | ID del proyecto en Vercel |
+```
+Supabase → Authentication → Users → Add user
+```
 
----
+## CI/CD — GitHub Secrets requeridos
 
-## Tablas en Supabase
+Ir a: **GitHub → repo → Settings → Secrets and variables → Actions**
 
-| Tabla | Descripción |
-|-------|-------------|
-| `clients` | Clientes y prospectos |
-| `quotes` | Presupuestos (cabecera) |
-| `quote_items` | Líneas de detalle de cada presupuesto |
-| `quote_information` | Presets de texto informativo del pie del PDF |
+| Secret | Valor |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL de Supabase |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key de Supabase |
+| `RENDER_DEPLOY_HOOK_URL` | Render → servicio → Settings → Deploy Hook |
 
----
+## Deploy
 
-## Tecnologías del frontend
+### Frontend (Vercel)
 
-- **Next.js 14** con App Router — framework de React para producción
-- **TypeScript** (strict) — tipado estático
-- **Tailwind CSS** — estilos utility-first
-- **TanStack Query** — manejo de estado del servidor (cache, loading, errores)
-- **Zustand** — estado de UI global
-- **React Hook Form + Zod** — formularios con validación tipada
-- **Supabase JS** — cliente para la base de datos
-- **Lucide React** — íconos
+- Root Directory: `frontend`
+- Env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-## Tecnologías del backend
+### Backend (Render)
 
-- **Spring Boot 3.3** · **Java 21**
-- **Clean Architecture** — domain / application / infrastructure
-- **Spring Data JPA** — persistencia con Hibernate
-- **MapStruct** — mapeo automático entidad ↔ DTO
-- **Lombok** — reducción de boilerplate
-- **OpenAPI 3** — documentación automática de la API
-- **Bean Validation** — validación de requests
+- Language: Docker / Root Directory: `backend`
+- Env vars: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `ALLOWED_ORIGINS`
+- Health check path: `/actuator/health`
 
----
+## API
 
-*Desarrollado para Vivero Urbano · Jardines y Paisajismo*
+Swagger UI: `https://backoffice-vivero-urbano.onrender.com/swagger-ui.html`
+
+Endpoints principales bajo `/api/v1/`:
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/clients` | Listar clientes (paginado) |
+| POST | `/clients` | Crear cliente |
+| PATCH | `/clients/{id}` | Actualizar cliente |
+| DELETE | `/clients/{id}` | Eliminar cliente (soft delete) |
+| GET | `/quotes` | Listar presupuestos |
+| POST | `/quotes` | Crear presupuesto |
+| PATCH | `/quotes/{id}/status` | Cambiar estado |
+| GET | `/quote-information` | Listar presets de texto |

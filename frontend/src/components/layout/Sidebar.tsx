@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
+import { supabase } from '@/lib/supabase';
 import {
   LayoutDashboard,
   Users,
@@ -12,6 +13,7 @@ import {
   Leaf,
   Sun,
   Moon,
+  LogOut,
 } from 'lucide-react';
 
 const navItems = [
@@ -23,7 +25,14 @@ const navItems = [
 
 export function Sidebar() {
   const pathname    = usePathname();
+  const router      = useRouter();
   const { isDark, toggle } = useTheme();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  };
 
   return (
     <aside className="flex h-full w-64 flex-col border-r border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-900">
@@ -75,6 +84,15 @@ export function Sidebar() {
             : <Moon className="h-4 w-4 text-slate-400" />
           }
           <span>{isDark ? 'Modo claro' : 'Modo oscuro'}</span>
+        </button>
+        <button
+          onClick={handleLogout}
+          className="mt-1 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-500
+                     hover:bg-red-50 hover:text-red-600 transition-colors
+                     dark:text-slate-500 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Cerrar sesión</span>
         </button>
         <p className="mt-2 px-3 text-xs text-gray-400 dark:text-slate-600">v0.1.0 · Beta privada</p>
       </div>
