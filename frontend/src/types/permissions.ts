@@ -15,6 +15,7 @@ export interface Role {
 export interface UserWithRoles {
   id: string;
   email: string;
+  username: string | null;
   display_name: string | null;
   roles: Role[];
 }

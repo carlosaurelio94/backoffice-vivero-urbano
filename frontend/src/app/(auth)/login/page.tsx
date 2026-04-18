@@ -1,14 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Leaf } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [email,    setEmail]    = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
@@ -18,16 +16,36 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      // 1. Resolver username → email via RPC (accesible sin autenticar)
+      const { data: emailData, error: rpcError } = await supabase
+        .rpc('get_email_by_username', { p_username: username.trim().toLowerCase() });
 
-    if (authError) {
-      setError('Email o contraseña incorrectos.');
+      if (rpcError || !emailData) {
+        setError('Usuario o contraseña incorrectos.');
+        setLoading(false);
+        return;
+      }
+
+      // 2. Autenticar con el email resuelto
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: emailData as string,
+        password,
+      });
+
+      if (authError) {
+        setError('Usuario o contraseña incorrectos.');
+        setLoading(false);
+        return;
+      }
+
+      // 3. Hard redirect para que el middleware vea la cookie de sesión
+      window.location.href = '/dashboard';
+
+    } catch {
+      setError('Ocurrió un error inesperado. Intentá de nuevo.');
       setLoading(false);
-      return;
     }
-
-    router.push('/dashboard');
-    router.refresh();
   };
 
   return (
@@ -51,17 +69,17 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700 dark:text-slate-300">Email</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-slate-300">Usuario</label>
               <input
-                type="email"
+                type="text"
                 required
-                autoComplete="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                autoComplete="username"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
                 className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900
                            focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500
                            dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-                placeholder="tu@email.com"
+                placeholder="tu_usuario"
               />
             </div>
 
