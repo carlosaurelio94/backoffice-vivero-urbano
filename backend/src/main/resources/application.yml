@@ -11,9 +11,9 @@ spring:
 
   jpa:
     hibernate:
-      # 'validate' en producción: no modifica el schema, solo lo valida contra las entidades
-      # Cambiá a 'create-drop' solo para desarrollo inicial
-      ddl-auto: validate
+      # 'none' en producción: Hibernate no toca ni valida el schema
+      # El schema lo maneja Supabase directamente
+      ddl-auto: none
     show-sql: false
     properties:
       hibernate:
@@ -45,4 +45,4 @@ management:
 # CORS: permite peticiones desde el frontend Next.js
 app:
   cors:
-    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000}
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhos
