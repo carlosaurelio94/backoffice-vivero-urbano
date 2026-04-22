@@ -28,7 +28,7 @@ export default function RecuperarPage() {
     // 2. Enviar email de recuperación
     const { error: resetErr } = await supabase.auth.resetPasswordForEmail(
       email as string,
-      { redirectTo: `${window.location.origin}/nueva-contrasena` }
+      { redirectTo: `${window.location.origin}/auth/callback?next=/nueva-contrasena` }
     );
 
     if (resetErr) {
