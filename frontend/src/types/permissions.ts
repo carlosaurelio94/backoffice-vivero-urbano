@@ -1,5 +1,13 @@
-export type Module = 'dashboard' | 'clientes' | 'presupuestos' | 'configuracion' | 'admin';
-export type Action = 'ver' | 'crear' | 'editar' | 'eliminar' | 'exportar';
+export type Module =
+  | 'dashboard'
+  | 'clientes'
+  | 'presupuestos'
+  | 'configuracion'
+  | 'admin'
+  | 'proveedores'
+  | 'facturas';
+
+export type Action = 'ver' | 'crear' | 'editar' | 'eliminar' | 'exportar' | 'aprobar' | 'pagar';
 
 export interface Permission {
   module: Module;

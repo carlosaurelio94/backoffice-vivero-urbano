@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, FileText } from 'lucide-react';
+import { Plus, Pencil, Trash2, FileText, KeyRound, Loader2, Eye, EyeOff } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -139,6 +140,68 @@ function DeletePresetModal({
   );
 }
 
+// ─── Cambio de contraseña ─────────────────────────────────────────────────────
+function ChangePasswordSection() {
+  const [current,  setCurrent]  = useState('');
+  const [newPass,  setNewPass]  = useState('');
+  const [confirm,  setConfirm]  = useState('');
+  const [showCur,  setShowCur]  = useState(false);
+  const [showNew,  setShowNew]  = useState(false);
+  const [saving,   setSaving]   = useState(false);
+  const [message,  setMessage]  = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPass !== confirm) { setMessage({ type: 'error', text: 'Las contraseñas no coinciden.' }); return; }
+    if (newPass.length < 6)  { setMessage({ type: 'error', text: 'La contraseña debe tener al menos 6 caracteres.' }); return; }
+    setSaving(true); setMessage(null);
+    const { error } = await supabase.auth.updateUser({ password: newPass });
+    setSaving(false);
+    if (error) { setMessage({ type: 'error', text: error.message }); return; }
+    setMessage({ type: 'success', text: 'Contraseña actualizada correctamente.' });
+    setCurrent(''); setNewPass(''); setConfirm('');
+  };
+
+  const inputCls = 'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-green-500';
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+      <div className="flex items-center gap-2 mb-4">
+        <KeyRound className="h-5 w-5 text-green-600" />
+        <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">Cambiar contraseña</h2>
+      </div>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3 max-w-sm">
+        <div className="relative">
+          <input type={showCur ? 'text' : 'password'} placeholder="Contraseña actual" value={current}
+            onChange={e => setCurrent(e.target.value)} className={inputCls} />
+          <button type="button" onClick={() => setShowCur(!showCur)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400">
+            {showCur ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+        <div className="relative">
+          <input type={showNew ? 'text' : 'password'} placeholder="Nueva contraseña (mín. 6 caracteres)" value={newPass}
+            onChange={e => setNewPass(e.target.value)} className={inputCls} minLength={6} required />
+          <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400">
+            {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+        <input type="password" placeholder="Repetir nueva contraseña" value={confirm}
+          onChange={e => setConfirm(e.target.value)} className={inputCls} required />
+        {message && (
+          <p className={`text-sm rounded-lg px-3 py-2 ${message.type === 'success' ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' : 'bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400'}`}>
+            {message.text}
+          </p>
+        )}
+        <button type="submit" disabled={saving}
+          className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60 w-fit">
+          {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+          {saving ? 'Guardando...' : 'Cambiar contraseña'}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 // ─── Page ──────────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const { data: presets, isLoading } = useQuoteInformation();
@@ -151,6 +214,9 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-6 max-w-3xl">
+
+      {/* ── Cambiar contraseña ── */}
+      <ChangePasswordSection />
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between">

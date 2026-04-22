@@ -17,6 +17,8 @@ import {
   Sun,
   Moon,
   LogOut,
+  Building2,
+  Receipt,
 } from 'lucide-react';
 
 interface NavItem {
@@ -27,11 +29,13 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: '/dashboard', label: 'Dashboard',     icon: LayoutDashboard, module: 'dashboard'     },
-  { href: '/clients',   label: 'Clientes',       icon: Users,           module: 'clientes'      },
-  { href: '/quotes',    label: 'Presupuestos',   icon: FileText,        module: 'presupuestos'  },
-  { href: '/settings',  label: 'Configuración',  icon: Settings,        module: 'configuracion' },
-  { href: '/admin',     label: 'Administración', icon: ShieldCheck,     module: 'admin'         },
+  { href: '/dashboard',  label: 'Dashboard',     icon: LayoutDashboard, module: 'dashboard'     },
+  { href: '/clients',    label: 'Clientes',       icon: Users,           module: 'clientes'      },
+  { href: '/quotes',     label: 'Presupuestos',   icon: FileText,        module: 'presupuestos'  },
+  { href: '/suppliers',  label: 'Proveedores',    icon: Building2,       module: 'proveedores'   },
+  { href: '/invoices',   label: 'Facturas',       icon: Receipt,         module: 'facturas'      },
+  { href: '/settings',   label: 'Configuración',  icon: Settings,        module: 'configuracion' },
+  { href: '/admin',      label: 'Administración', icon: ShieldCheck,     module: 'admin'         },
 ];
 
 export function Sidebar() {
