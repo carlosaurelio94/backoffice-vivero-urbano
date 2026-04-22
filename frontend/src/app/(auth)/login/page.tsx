@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Leaf } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
@@ -107,6 +108,12 @@ export default function LoginPage() {
             <Button type="submit" loading={loading} className="mt-2 w-full justify-center">
               Entrar
             </Button>
+
+            <div className="text-center">
+              <Link href="/recuperar" className="text-sm text-gray-500 hover:text-green-600 dark:text-slate-400 dark:hover:text-green-400 transition-colors">
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
           </form>
         </div>
       </div>

@@ -102,6 +102,27 @@ export async function POST(request: Request) {
   return NextResponse.json({ ok: true, userId, username: cleanUsername });
 }
 
+// PATCH /api/admin/users — resetear contraseña de un usuario
+export async function PATCH(request: Request) {
+  const auth = await requireAdmin();
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.message }, { status: auth.status });
+  }
+
+  const body = await request.json() as { userId: string; newPassword: string };
+  const { userId, newPassword } = body;
+
+  if (!userId || !newPassword || newPassword.length < 6) {
+    return NextResponse.json({ error: 'Contraseña inválida (mínimo 6 caracteres)' }, { status: 400 });
+  }
+
+  const admin = adminClient();
+  const { error } = await admin.auth.admin.updateUserById(userId, { password: newPassword });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ ok: true });
+}
+
 // DELETE /api/admin/users?userId=xxx — eliminar usuario
 export async function DELETE(request: Request) {
   const auth = await requireAdmin();

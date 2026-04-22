@@ -25,10 +25,14 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const isLoginPage = request.nextUrl.pathname.startsWith('/login');
+  const path = request.nextUrl.pathname;
+  const isLoginPage        = path.startsWith('/login');
+  const isRecoverPage      = path.startsWith('/recuperar');
+  const isNewPasswordPage  = path.startsWith('/nueva-contrasena');
+  const isPublic           = isLoginPage || isRecoverPage || isNewPasswordPage;
 
-  // No autenticado → redirigir a /login
-  if (!user && !isLoginPage) {
+  // No autenticado → redirigir a /login (excepto páginas públicas)
+  if (!user && !isPublic) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { ShieldCheck, Plus, X, Loader2, ChevronDown, UserPlus, Eye, EyeOff } from 'lucide-react';
+import { ShieldCheck, Plus, X, Loader2, ChevronDown, UserPlus, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { usePermissions } from '@/hooks/usePermissions';
 import type { Role, UserWithRoles } from '@/types/permissions';
@@ -175,14 +175,103 @@ function CreateUserForm({ roles, onCreated }: CreateUserFormProps) {
   );
 }
 
+// ─── Modal reset contraseña ────────────────────────────────
+interface ResetPasswordModalProps {
+  user:    UserWithRoles & { username?: string | null };
+  onClose: () => void;
+}
+
+function ResetPasswordModal({ user, onClose }: ResetPasswordModalProps) {
+  const [newPass,  setNewPass]  = useState('');
+  const [confirm,  setConfirm]  = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [saving,   setSaving]   = useState(false);
+  const [error,    setError]    = useState('');
+  const [ok,       setOk]       = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPass.length < 6)    { setError('Mínimo 6 caracteres.'); return; }
+    if (newPass !== confirm)   { setError('Las contraseñas no coinciden.'); return; }
+    setSaving(true); setError('');
+    const res  = await fetch('/api/admin/users', {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ userId: user.id, newPassword: newPass }),
+    });
+    const json = await res.json() as { ok?: boolean; error?: string };
+    if (!res.ok || !json.ok) { setError(json.error ?? 'Error al cambiar la contraseña.'); setSaving(false); return; }
+    setOk(true); setSaving(false);
+  };
+
+  const display = user.display_name ?? (user as UserWithRoles & { username?: string | null }).username ?? user.email;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 shadow-xl">
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-slate-700 px-6 py-4">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100 flex items-center gap-2">
+            <KeyRound className="h-4 w-4 text-green-600" /> Cambiar contraseña
+          </h2>
+          <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-slate-800"><X className="h-4 w-4" /></button>
+        </div>
+        <div className="p-6">
+          <p className="text-sm text-gray-500 dark:text-slate-400 mb-4">
+            Cambiando contraseña de <span className="font-medium text-gray-800 dark:text-slate-200">{display}</span>
+          </p>
+          {ok ? (
+            <div className="rounded-lg bg-green-50 dark:bg-green-900/20 px-4 py-3 text-sm text-green-700 dark:text-green-400">
+              ✓ Contraseña actualizada correctamente.
+              <button onClick={onClose} className="ml-2 underline">Cerrar</button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+              <div className="relative">
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  required minLength={6}
+                  placeholder="Nueva contraseña"
+                  value={newPass}
+                  onChange={e => setNewPass(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-9 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-green-500"
+                />
+                <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400">
+                  {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <input
+                type="password"
+                required
+                placeholder="Repetir contraseña"
+                value={confirm}
+                onChange={e => setConfirm(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-green-500"
+              />
+              {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">{error}</p>}
+              <div className="flex gap-2 justify-end">
+                <button type="button" onClick={onClose} className="rounded-lg border border-gray-300 px-4 py-2 text-sm dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800">Cancelar</button>
+                <button type="submit" disabled={saving} className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60">
+                  {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {saving ? 'Guardando...' : 'Cambiar'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Página principal ──────────────────────────────────────
 export default function AdminPage() {
   const { isAdmin, loading: permLoading } = usePermissions();
-  const [users,   setUsers]   = useState<UserWithRoles[]>([]);
-  const [roles,   setRoles]   = useState<Role[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [adding,  setAdding]  = useState<string | null>(null);
-  const [saving,  setSaving]  = useState(false);
+  const [users,       setUsers]       = useState<UserWithRoles[]>([]);
+  const [roles,       setRoles]       = useState<Role[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [adding,      setAdding]      = useState<string | null>(null);
+  const [saving,      setSaving]      = useState(false);
+  const [resettingPw, setResettingPw] = useState<UserWithRoles | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -375,6 +464,18 @@ export default function AdminPage() {
                     </div>
                   )}
 
+                  {/* Resetear contraseña */}
+                  <button
+                    onClick={() => setResettingPw(user)}
+                    disabled={saving}
+                    className="rounded-lg border border-dashed border-blue-200 px-2 py-1.5 text-xs text-blue-400
+                               hover:border-blue-400 hover:text-blue-600 transition-colors disabled:opacity-50
+                               dark:border-blue-900/40 dark:text-blue-500 dark:hover:border-blue-500"
+                    title="Cambiar contraseña"
+                  >
+                    <KeyRound className="h-3.5 w-3.5" />
+                  </button>
+
                   {/* Eliminar usuario */}
                   <button
                     onClick={() => deleteUser(user.id)}
@@ -393,6 +494,13 @@ export default function AdminPage() {
           })}
         </div>
       </section>
+
+      {resettingPw && (
+        <ResetPasswordModal
+          user={resettingPw}
+          onClose={() => setResettingPw(null)}
+        />
+      )}
     </div>
   );
 }
