@@ -125,7 +125,7 @@ function DeletePresetModal({
       <div className="flex flex-col gap-4">
         <p className="text-sm text-gray-600 dark:text-slate-300">
           ¿Eliminár el preset{' '}
-          <span className="font-semibold text-gray-900 dark:text-slate-100">"{preset?.name}"</span>?
+          <span className="font-semibold text-gray-900 dark:text-slate-100">&quot;{preset?.name}&quot;</span>?
         </p>
         <div className="flex justify-end gap-3 border-t border-gray-100 pt-4 dark:border-slate-700">
           <Button variant="secondary" onClick={onClose} disabled={deleteMut.isPending}>

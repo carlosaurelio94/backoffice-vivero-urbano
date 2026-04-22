@@ -92,7 +92,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    void load();
+    void load(); // eslint-disable-line react-hooks/set-state-in-effect
 
     // Recargar permisos si cambia la sesión
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {

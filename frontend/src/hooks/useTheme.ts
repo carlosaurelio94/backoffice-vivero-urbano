@@ -11,7 +11,7 @@ export function useTheme() {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const shouldBeDark = saved === 'dark' || (!saved && prefersDark);
 
-    setIsDark(shouldBeDark);
+    setIsDark(shouldBeDark); // eslint-disable-line react-hooks/set-state-in-effect
     document.documentElement.classList.toggle('dark', shouldBeDark);
   }, []);
 

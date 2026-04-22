@@ -75,7 +75,7 @@ export interface CreateClientDTO {
   client_status: ClientStatus;
 }
 
-export interface UpdateClientDTO extends Partial<CreateClientDTO> {}
+export type UpdateClientDTO = Partial<CreateClientDTO>;
 
 export interface CreateQuoteItemDTO {
   quantity: number;

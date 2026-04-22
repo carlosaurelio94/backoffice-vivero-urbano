@@ -303,7 +303,7 @@ export default function AdminPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { void fetchData(); }, [fetchData]);
+  useEffect(() => { void fetchData(); }, [fetchData]); // eslint-disable-line react-hooks/set-state-in-effect
 
   const addRole = async (userId: string, roleId: string) => {
     setSaving(true);

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Building2, Plus, Search, Eye, Upload, List,
   Loader2, X, ChevronLeft, ChevronRight, Pencil,
-  Phone, Mail, Briefcase, Bell, BellOff, Landmark,
+  Phone, Mail, Bell, BellOff, Landmark,
   Trash2
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -131,7 +131,7 @@ function SupplierDetailModal({ supplier, onClose, onLoadInvoice }: SupplierDetai
     setLoading(false);
   }, [supplier]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load(); }, [load]); // eslint-disable-line react-hooks/set-state-in-effect
 
   const saveContact = async () => {
     if (!newContact) return;

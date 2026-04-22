@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type {
-  Invoice, InvoiceStatus, InvoiceInstallment, InvoiceStatusHistory,
+  Invoice, InvoiceStatus, InvoiceStatusHistory,
   Supplier, InvoiceType, PaymentMethod, Currency,
 } from '@/types/suppliers';
 import {
@@ -257,7 +257,7 @@ interface InvoiceFormModalProps {
   onSaved:         () => void;
 }
 
-function InvoiceFormModal({ statuses, preSupplier, onClose, onSaved }: InvoiceFormModalProps) {
+function InvoiceFormModal({ statuses: _statuses, preSupplier, onClose, onSaved }: InvoiceFormModalProps) {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [form, setForm] = useState({
     supplier_id:    preSupplier?.id  ?? '',
