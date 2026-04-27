@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Receipt, Plus, Search, Info, FileStack, X, Loader2,
@@ -454,7 +454,7 @@ function InvoiceFormModal({ statuses: _statuses, preSupplier, onClose, onSaved }
 }
 
 // ─── Página Principal ──────────────────────────────────────────
-export default function InvoicesPage() {
+function InvoicesContent() {
   const searchParams  = useSearchParams();
   const router        = useRouter();
   const preSupplier   = searchParams.get('supplierId')
@@ -609,5 +609,13 @@ export default function InvoicesPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function InvoicesPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-64"><span className="text-sm text-gray-400">Cargando...</span></div>}>
+      <InvoicesContent />
+    </Suspense>
   );
 }
