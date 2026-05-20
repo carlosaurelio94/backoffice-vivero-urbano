@@ -510,6 +510,181 @@ CREATE TRIGGER user_roles_insert INSTEAD OF INSERT ON public.user_roles
 CREATE TRIGGER user_roles_delete INSTEAD OF DELETE ON public.user_roles
   FOR EACH ROW EXECUTE FUNCTION public.user_roles_delete_trg();
 
+-- ────────────────────────────────────────────────────────────
+-- SUPER ADMIN: rol cross-tenant para el operador del SaaS
+-- ────────────────────────────────────────────────────────────
+
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS is_super_admin BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE OR REPLACE FUNCTION public.is_super_admin() RETURNS BOOLEAN
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT COALESCE(
+    (SELECT is_super_admin FROM public.profiles WHERE id = auth.uid()),
+    FALSE
+  );
+$$;
+GRANT EXECUTE ON FUNCTION public.is_super_admin() TO authenticated;
+
+-- companies: super admin acceso total + miembros leen/editan su empresa
+DROP POLICY IF EXISTS companies_select         ON public.companies;
+DROP POLICY IF EXISTS companies_update         ON public.companies;
+DROP POLICY IF EXISTS companies_super_all      ON public.companies;
+DROP POLICY IF EXISTS companies_select_member  ON public.companies;
+DROP POLICY IF EXISTS companies_update_member  ON public.companies;
+CREATE POLICY companies_super_all ON public.companies
+  FOR ALL TO authenticated USING (public.is_super_admin()) WITH CHECK (public.is_super_admin());
+CREATE POLICY companies_select_member ON public.companies
+  FOR SELECT TO authenticated USING (public.is_member_of(id));
+CREATE POLICY companies_update_member ON public.companies
+  FOR UPDATE TO authenticated USING (public.is_member_of(id)) WITH CHECK (public.is_member_of(id));
+
+DROP POLICY IF EXISTS uc_super_all       ON public.user_companies;
+CREATE POLICY uc_super_all ON public.user_companies
+  FOR ALL TO authenticated USING (public.is_super_admin()) WITH CHECK (public.is_super_admin());
+
+DROP POLICY IF EXISTS profiles_super_all ON public.profiles;
+CREATE POLICY profiles_super_all ON public.profiles
+  FOR ALL TO authenticated USING (public.is_super_admin()) WITH CHECK (public.is_super_admin());
+
+-- ────────────────────────────────────────────────────────────
+-- PLANES (catálogo público, límites por plan)
+-- ────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS public.plans (
+  id                     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug                   TEXT UNIQUE NOT NULL,
+  name                   TEXT NOT NULL,
+  description            TEXT,
+  price_monthly_ars      NUMERIC(12,2) NOT NULL DEFAULT 0,
+  price_monthly_usd      NUMERIC(12,2) NOT NULL DEFAULT 0,
+  max_users              INTEGER,
+  max_clients            INTEGER,
+  max_quotes_per_month   INTEGER,
+  max_invoices_per_month INTEGER,
+  features               JSONB NOT NULL DEFAULT '{}'::jsonb,
+  is_public              BOOLEAN NOT NULL DEFAULT TRUE,
+  sort_order             INTEGER NOT NULL DEFAULT 0,
+  created_at             TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+INSERT INTO public.plans (slug, name, description, price_monthly_ars, price_monthly_usd,
+                          max_users, max_clients, max_quotes_per_month, max_invoices_per_month, features, sort_order)
+VALUES
+  ('free',       'Free',       'Para probar la herramienta',
+   0, 0, 2, 25, 20, 10,
+   '{"export_pdf":true, "dark_mode":true, "branding_custom":false}'::jsonb, 1),
+  ('pro',        'Pro',        'Equipos chicos en operación diaria',
+   25000, 25, 10, 500, 500, 200,
+   '{"export_pdf":true, "dark_mode":true, "branding_custom":true, "priority_support":false}'::jsonb, 2),
+  ('enterprise', 'Enterprise', 'Sin límites, soporte prioritario',
+   80000, 80, NULL, NULL, NULL, NULL,
+   '{"export_pdf":true, "dark_mode":true, "branding_custom":true, "priority_support":true, "sla":true}'::jsonb, 3)
+ON CONFLICT (slug) DO NOTHING;
+
+ALTER TABLE public.companies
+  ADD COLUMN IF NOT EXISTS plan_id UUID REFERENCES public.plans(id);
+
+UPDATE public.companies c
+   SET plan_id = p.id
+  FROM public.plans p
+ WHERE c.plan_id IS NULL AND p.slug = c.plan;
+
+ALTER TABLE public.plans ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS plans_public_select ON public.plans;
+DROP POLICY IF EXISTS plans_super_all     ON public.plans;
+CREATE POLICY plans_public_select ON public.plans FOR SELECT TO anon, authenticated USING (is_public = TRUE);
+CREATE POLICY plans_super_all     ON public.plans FOR ALL TO authenticated
+  USING (public.is_super_admin()) WITH CHECK (public.is_super_admin());
+
+CREATE OR REPLACE FUNCTION public.company_limit(p_company UUID, p_field TEXT) RETURNS INTEGER
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT CASE p_field
+    WHEN 'max_users'              THEN p.max_users
+    WHEN 'max_clients'            THEN p.max_clients
+    WHEN 'max_quotes_per_month'   THEN p.max_quotes_per_month
+    WHEN 'max_invoices_per_month' THEN p.max_invoices_per_month
+    ELSE NULL
+  END
+  FROM public.companies c
+  LEFT JOIN public.plans p ON p.id = c.plan_id
+  WHERE c.id = p_company;
+$$;
+GRANT EXECUTE ON FUNCTION public.company_limit(UUID, TEXT) TO authenticated;
+
+-- ────────────────────────────────────────────────────────────
+-- SIGNUP SELF-SERVICE: RPC + helpers de disponibilidad
+-- ────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.is_company_slug_available(p_slug TEXT) RETURNS BOOLEAN
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT NOT EXISTS (SELECT 1 FROM public.companies WHERE slug = lower(p_slug));
+$$;
+GRANT EXECUTE ON FUNCTION public.is_company_slug_available(TEXT) TO anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.is_username_available(p_username TEXT) RETURNS BOOLEAN
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT NOT EXISTS (SELECT 1 FROM public.profiles WHERE username = lower(p_username));
+$$;
+GRANT EXECUTE ON FUNCTION public.is_username_available(TEXT) TO anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.bootstrap_company(
+  p_slug          TEXT,
+  p_company_name  TEXT,
+  p_username      TEXT,
+  p_display_name  TEXT,
+  p_plan_slug     TEXT DEFAULT 'free'
+) RETURNS UUID
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_user_id    UUID := auth.uid();
+  v_company_id UUID;
+  v_role_id    UUID;
+  v_plan_id    UUID;
+BEGIN
+  IF v_user_id IS NULL THEN RAISE EXCEPTION 'no hay sesión activa'; END IF;
+  IF EXISTS (SELECT 1 FROM public.user_companies WHERE user_id = v_user_id) THEN
+    RAISE EXCEPTION 'el usuario ya pertenece a una empresa';
+  END IF;
+  IF NOT public.is_company_slug_available(p_slug) THEN
+    RAISE EXCEPTION 'el slug % ya está en uso', p_slug;
+  END IF;
+
+  SELECT id INTO v_plan_id FROM public.plans WHERE slug = COALESCE(p_plan_slug, 'free');
+
+  INSERT INTO public.companies (slug, name, plan, plan_id)
+  VALUES (lower(p_slug), p_company_name, COALESCE(p_plan_slug, 'free'), v_plan_id)
+  RETURNING id INTO v_company_id;
+
+  SELECT id INTO v_role_id FROM public.roles WHERE name = 'administrador';
+
+  INSERT INTO public.user_companies (user_id, company_id, role_id)
+  VALUES (v_user_id, v_company_id, v_role_id);
+
+  UPDATE public.profiles
+     SET username           = lower(p_username),
+         display_name       = COALESCE(p_display_name, p_username),
+         current_company_id = v_company_id
+   WHERE id = v_user_id;
+
+  RETURN v_company_id;
+END $$;
+GRANT EXECUTE ON FUNCTION public.bootstrap_company(TEXT, TEXT, TEXT, TEXT, TEXT) TO authenticated;
+
+-- ────────────────────────────────────────────────────────────
+-- BRANDING público (para el login con ?company=slug)
+-- ────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.get_company_branding(p_slug TEXT)
+RETURNS TABLE(name TEXT, primary_color TEXT, logo_url TEXT)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT c.name, c.primary_color, c.logo_url
+  FROM public.companies c
+  WHERE c.slug = lower(p_slug) AND c.active = TRUE
+  LIMIT 1;
+$$;
+GRANT EXECUTE ON FUNCTION public.get_company_branding(TEXT) TO anon, authenticated;
+
 -- Hardening de funciones helper:
 -- - anon nunca debe llamarlas (sólo get_email_by_username está expuesto a anon)
 -- - authenticated SÍ las necesita: las policies RLS las evalúan como el rol

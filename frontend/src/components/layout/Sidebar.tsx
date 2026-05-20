@@ -23,6 +23,8 @@ import {
   Receipt,
   ChevronsUpDown,
   Check,
+  CreditCard,
+  Globe,
 } from 'lucide-react';
 
 interface NavItem {
@@ -33,13 +35,14 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: '/dashboard',  label: 'Dashboard',     icon: LayoutDashboard, module: 'dashboard'     },
-  { href: '/clients',    label: 'Clientes',       icon: Users,           module: 'clientes'      },
-  { href: '/quotes',     label: 'Presupuestos',   icon: FileText,        module: 'presupuestos'  },
-  { href: '/suppliers',  label: 'Proveedores',    icon: Building2,       module: 'proveedores'   },
-  { href: '/invoices',   label: 'Facturas',       icon: Receipt,         module: 'facturas'      },
-  { href: '/settings',   label: 'Configuración',  icon: Settings,        module: 'configuracion' },
-  { href: '/admin',      label: 'Administración', icon: ShieldCheck,     module: 'admin'         },
+  { href: '/dashboard',        label: 'Dashboard',       icon: LayoutDashboard, module: 'dashboard'     },
+  { href: '/clients',          label: 'Clientes',         icon: Users,           module: 'clientes'      },
+  { href: '/quotes',           label: 'Presupuestos',     icon: FileText,        module: 'presupuestos'  },
+  { href: '/suppliers',        label: 'Proveedores',      icon: Building2,       module: 'proveedores'   },
+  { href: '/invoices',         label: 'Facturas',         icon: Receipt,         module: 'facturas'      },
+  { href: '/settings',         label: 'Configuración',    icon: Settings,        module: 'configuracion' },
+  { href: '/settings/billing', label: 'Plan y facturación', icon: CreditCard,    module: 'configuracion' },
+  { href: '/admin',            label: 'Usuarios y roles', icon: ShieldCheck,     module: 'admin'         },
 ];
 
 export function Sidebar() {
@@ -47,7 +50,7 @@ export function Sidebar() {
   const router      = useRouter();
   const { isDark, toggle } = useTheme();
   const { canView, loading } = usePermissions();
-  const { current: company, available, switchTo } = useCompany();
+  const { current: company, available, switchTo, isSuperAdmin } = useCompany();
   const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
 
   const handleLogout = async () => {
@@ -126,7 +129,10 @@ export function Sidebar() {
           </div>
         )}
         {visibleItems.map(({ href, label, icon: Icon }) => {
-          const active = pathname.startsWith(href);
+          // Match exacto para /settings, prefix para los demás
+          const active = href === '/settings'
+            ? pathname === '/settings'
+            : pathname.startsWith(href);
           return (
             <Link
               key={href}
@@ -143,6 +149,27 @@ export function Sidebar() {
             </Link>
           );
         })}
+
+        {isSuperAdmin && !loading && (
+          <>
+            <div className="my-3 border-t border-gray-100 dark:border-slate-800" />
+            <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">
+              Super-admin
+            </p>
+            <Link
+              href="/admin/companies"
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                pathname.startsWith('/admin/companies')
+                  ? 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+              )}
+            >
+              <Globe className="h-5 w-5 text-purple-500" />
+              Empresas (todas)
+            </Link>
+          </>
+        )}
       </nav>
 
       {/* Footer */}

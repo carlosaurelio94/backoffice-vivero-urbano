@@ -1,16 +1,50 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Leaf } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
 
+interface Branding { name: string; primary_color: string; logo_url: string | null }
+const DEFAULT_BRAND: Branding = { name: 'Vivero Urbano', primary_color: '#16a34a', logo_url: null };
+
 export default function LoginPage() {
+  // useSearchParams requiere Suspense para SSR estático en Next 15
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 dark:bg-slate-950" />}>
+      <LoginInner />
+    </Suspense>
+  );
+}
+
+function LoginInner() {
+  const search = useSearchParams();
+  const slug   = search.get('company');
+
+  const [brand,    setBrand]    = useState<Branding>(DEFAULT_BRAND);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
+
+  useEffect(() => {
+    if (!slug) return;
+    let cancel = false;
+    void (async () => {
+      const { data } = await supabase.rpc('get_company_branding', { p_slug: slug });
+      const row = Array.isArray(data) ? data[0] : null;
+      if (!cancel && row) {
+        setBrand({
+          name:          row.name          ?? DEFAULT_BRAND.name,
+          primary_color: row.primary_color ?? DEFAULT_BRAND.primary_color,
+          logo_url:      row.logo_url      ?? null,
+        });
+      }
+    })();
+    return () => { cancel = true; };
+  }, [slug]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,13 +87,18 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 dark:bg-slate-950">
       <div className="w-full max-w-sm">
 
-        {/* Logo */}
+        {/* Logo dinámico (slug ?company=… o default) */}
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-600 shadow-lg">
-            <Leaf className="h-7 w-7 text-white" />
+          <div
+            className="flex h-12 w-12 items-center justify-center rounded-xl shadow-lg"
+            style={{ backgroundColor: brand.primary_color }}
+          >
+            {brand.logo_url
+              ? <img src={brand.logo_url} alt="" className="h-7 w-7 object-contain" />
+              : <Leaf className="h-7 w-7 text-white" />}
           </div>
           <div className="text-center">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100">Vivero Urbano</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100">{brand.name}</h1>
             <p className="text-sm text-gray-500 dark:text-slate-400">Backoffice · Acceso privado</p>
           </div>
         </div>
@@ -109,9 +148,12 @@ export default function LoginPage() {
               Entrar
             </Button>
 
-            <div className="text-center">
+            <div className="flex flex-col gap-1 text-center">
               <Link href="/recuperar" className="text-sm text-gray-500 hover:text-green-600 dark:text-slate-400 dark:hover:text-green-400 transition-colors">
                 ¿Olvidaste tu contraseña?
+              </Link>
+              <Link href="/register" className="text-sm text-gray-500 hover:text-green-600 dark:text-slate-400 dark:hover:text-green-400 transition-colors">
+                ¿No tenés cuenta? Creá tu empresa
               </Link>
             </div>
           </form>

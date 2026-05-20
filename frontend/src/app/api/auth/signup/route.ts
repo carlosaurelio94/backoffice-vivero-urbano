@@ -1,0 +1,115 @@
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+
+function adminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error('Missing Supabase admin credentials');
+  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
+}
+
+interface Body {
+  companySlug:  string;
+  companyName:  string;
+  username:     string;
+  password:     string;
+  displayName?: string;
+  email?:       string;   // opcional — si no, se genera @<slug>.internal
+  planSlug?:    string;   // default 'free'
+}
+
+const slugRe = /^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])?$/;
+const userRe = /^[a-z0-9_]{3,32}$/;
+
+export async function POST(request: Request) {
+  let body: Body;
+  try { body = await request.json() as Body; }
+  catch { return NextResponse.json({ error: 'JSON inválido' }, { status: 400 }); }
+
+  const companySlug = body.companySlug?.trim().toLowerCase();
+  const username    = body.username?.trim().toLowerCase();
+  const companyName = body.companyName?.trim();
+  const password    = body.password;
+  const planSlug    = body.planSlug?.trim().toLowerCase() || 'free';
+
+  if (!companySlug || !slugRe.test(companySlug)) {
+    return NextResponse.json({ error: 'Slug de empresa inválido (3-32 chars, letras/números/-)' }, { status: 400 });
+  }
+  if (!companyName || companyName.length < 2) {
+    return NextResponse.json({ error: 'Nombre de empresa requerido' }, { status: 400 });
+  }
+  if (!username || !userRe.test(username)) {
+    return NextResponse.json({ error: 'Usuario inválido (3-32 chars, letras/números/_)' }, { status: 400 });
+  }
+  if (!password || password.length < 8) {
+    return NextResponse.json({ error: 'Contraseña debe tener al menos 8 caracteres' }, { status: 400 });
+  }
+
+  const admin = adminClient();
+
+  // Verificar disponibilidad
+  const [{ data: slugFree }, { data: userFree }] = await Promise.all([
+    admin.rpc('is_company_slug_available', { p_slug: companySlug }),
+    admin.rpc('is_username_available',     { p_username: username }),
+  ]);
+
+  if (slugFree === false) return NextResponse.json({ error: 'Ese slug ya está en uso' }, { status: 409 });
+  if (userFree === false) return NextResponse.json({ error: 'Ese usuario ya está en uso' }, { status: 409 });
+
+  const email = body.email?.trim().toLowerCase() || `${username}@${companySlug}.internal`;
+
+  // 1. Crear user en Supabase Auth
+  const { data: created, error: createErr } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  if (createErr || !created.user) {
+    return NextResponse.json({ error: createErr?.message ?? 'No se pudo crear el usuario' }, { status: 400 });
+  }
+  const userId = created.user.id;
+
+  // 2. Iniciar sesión server-side con las creds recién creadas para poder
+  //    llamar bootstrap_company autenticado como el nuevo user (la RPC
+  //    requiere auth.uid() y RLS lo respeta).
+  const { data: session, error: sessErr } = await admin.auth.signInWithPassword({ email, password });
+  if (sessErr || !session.session) {
+    await admin.auth.admin.deleteUser(userId);
+    return NextResponse.json({ error: 'No se pudo iniciar sesión' }, { status: 500 });
+  }
+
+  // 3. Llamar bootstrap_company autenticado como el nuevo user
+  const userScoped = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      global: { headers: { Authorization: `Bearer ${session.session.access_token}` } },
+      auth:   { autoRefreshToken: false, persistSession: false },
+    }
+  );
+
+  const { data: companyId, error: bootErr } = await userScoped.rpc('bootstrap_company', {
+    p_slug:         companySlug,
+    p_company_name: companyName,
+    p_username:     username,
+    p_display_name: body.displayName ?? username,
+    p_plan_slug:    planSlug,
+  });
+
+  if (bootErr || !companyId) {
+    await admin.auth.admin.deleteUser(userId);
+    return NextResponse.json({ error: bootErr?.message ?? 'No se pudo crear la empresa' }, { status: 500 });
+  }
+
+  // Cerrar la sesión que armamos del lado server (el cliente armará la suya con login normal).
+  await userScoped.auth.signOut();
+
+  return NextResponse.json({
+    ok:        true,
+    userId,
+    companyId,
+    username,
+    companySlug,
+    email,
+  });
+}
