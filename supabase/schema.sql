@@ -510,11 +510,17 @@ CREATE TRIGGER user_roles_insert INSTEAD OF INSERT ON public.user_roles
 CREATE TRIGGER user_roles_delete INSTEAD OF DELETE ON public.user_roles
   FOR EACH ROW EXECUTE FUNCTION public.user_roles_delete_trg();
 
--- Hardening: estas funciones helper sólo se usan internamente (RLS / triggers),
--- no como RPCs públicas. Revocamos EXECUTE para evitar exponerlas via /rest/v1/rpc.
-REVOKE EXECUTE ON FUNCTION public.current_company_id()       FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.is_member_of(uuid)         FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.has_permission(text, text) FROM PUBLIC, anon, authenticated;
+-- Hardening de funciones helper:
+-- - anon nunca debe llamarlas (sólo get_email_by_username está expuesto a anon)
+-- - authenticated SÍ las necesita: las policies RLS las evalúan como el rol
+--   que está corriendo el query, así que sin EXECUTE las policies fallan.
+-- - trigger funcs y handle_new_user no se invocan via REST, los revocamos.
+REVOKE EXECUTE ON FUNCTION public.current_company_id()       FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.is_member_of(uuid)         FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.has_permission(text, text) FROM PUBLIC, anon;
+GRANT  EXECUTE ON FUNCTION public.current_company_id()       TO authenticated;
+GRANT  EXECUTE ON FUNCTION public.is_member_of(uuid)         TO authenticated;
+GRANT  EXECUTE ON FUNCTION public.has_permission(text, text) TO authenticated;
 REVOKE EXECUTE ON FUNCTION public.handle_new_user()          FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.user_roles_insert_trg()    FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.user_roles_delete_trg()    FROM PUBLIC, anon, authenticated;
