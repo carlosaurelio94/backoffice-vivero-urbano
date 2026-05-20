@@ -24,10 +24,17 @@ backoffice-vivero-urbano/
 
 - **Clientes** — CRUD completo, estados (prospecto / cliente), búsqueda y filtros
 - **Presupuestos** — creación con ítems, importación de lista por texto, cambio de estado inline, exportación PDF
+- **Proveedores + Facturas** — circuito completo de compras
 - **Configuración** — presets de texto informativo reutilizables en presupuestos
 - **Dashboard** — métricas del mes, actividad reciente, exportar CSV
 - **Dark mode** — toggle persistido en localStorage, sin flash al recargar
 - **Autenticación** — login con Supabase Auth, rutas protegidas por middleware
+- **Multi-tenancy** — cada empresa (tenant) ve sólo sus datos. RLS estricto.
+- **Onboarding self-service** — cualquiera puede crear su empresa en `/register`
+- **Switcher de empresa** — si el user pertenece a varias, salto rápido sin re-loguear
+- **Branding por empresa** — nombre, logo y color (también en login con `?company=slug`)
+- **Planes** — Free / Pro / Enterprise con límites y página de billing
+- **Super-admin global** — vista cross-tenant para el operador del SaaS (`/admin/companies`)
 
 ## Desarrollo local
 
