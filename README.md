@@ -1,6 +1,8 @@
-# Backoffice — Vivero Urbano
+# Backoffice multi-tenant
 
-Sistema de gestión interna para clientes y presupuestos de Vivero Urbano.
+Backoffice SaaS multi-empresa: clientes, presupuestos, proveedores y facturas.
+Cada empresa (tenant) ve únicamente sus propios datos vía Row Level Security.
+La empresa piloto es Vivero Urbano.
 
 ## Arquitectura
 
@@ -77,22 +79,43 @@ mvn spring-boot:run
 
 ## Base de datos
 
-Aplicar el schema inicial:
+Setup completo desde cero (incluye tablas, RLS, roles, permisos y vista de compat):
 
 ```
 Supabase → SQL Editor → pegar supabase/schema.sql → Run
 ```
 
-Activar Row Level Security (después de crear el usuario):
+Crear primera empresa + usuario administrador (editar los valores arriba):
 
 ```
-Supabase → SQL Editor → pegar supabase/rls.sql → Run
+Supabase → SQL Editor → pegar supabase/seed.sql → editar → Run
 ```
 
-Crear usuario del backoffice:
+### Multi-tenancy
 
-```
-Supabase → Authentication → Users → Add user
+Cada empresa es un registro en `companies`. Los usuarios pertenecen a una o
+más empresas vía `user_companies(user_id, company_id, role_id)`. Todas las
+tablas de negocio (`clients`, `quotes`, `quote_items`, `suppliers`,
+`invoices`, etc.) llevan `company_id NOT NULL` con default a la empresa
+activa del usuario (`current_company_id()`), y RLS que filtra
+por `is_member_of(company_id)`.
+
+La empresa activa se guarda en `profiles.current_company_id` y se puede
+cambiar desde el switcher del Sidebar cuando el usuario pertenece a varias.
+
+### Agregar una nueva empresa (sin self-service)
+
+```sql
+INSERT INTO companies (slug, name, primary_color)
+VALUES ('empresa-x', 'Empresa X', '#2563eb');
+
+-- después, asignar usuarios via /admin del backoffice, o:
+INSERT INTO user_companies (user_id, company_id, role_id)
+VALUES (
+  (SELECT id FROM auth.users WHERE email='user@empresa-x.com'),
+  (SELECT id FROM companies  WHERE slug='empresa-x'),
+  (SELECT id FROM roles      WHERE name='administrador')
+);
 ```
 
 ## CI/CD — GitHub Secrets requeridos

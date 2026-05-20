@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useCompany } from '@/context/CompanyContext';
 import type { Module, Action, Permission, Role } from '@/types/permissions';
 
 interface PermissionsContextValue {
@@ -41,6 +42,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [roles, setRoles]             = useState<Role[]>([]);
   const [loading, setLoading]         = useState(true);
+  const { current: company }          = useCompany();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -99,7 +101,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
       void load();
     });
     return () => subscription.unsubscribe();
-  }, [load]);
+  }, [load, company?.id]);  // ← recarga al cambiar de empresa
 
   const hasPermission = useCallback(
     (module: Module, action: Action) =>

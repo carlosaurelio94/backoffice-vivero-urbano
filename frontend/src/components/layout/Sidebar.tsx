@@ -3,8 +3,10 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useState } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useCompany } from '@/context/CompanyContext';
 import { supabase } from '@/lib/supabase';
 import type { Module } from '@/types/permissions';
 import {
@@ -19,6 +21,8 @@ import {
   LogOut,
   Building2,
   Receipt,
+  ChevronsUpDown,
+  Check,
 } from 'lucide-react';
 
 interface NavItem {
@@ -43,12 +47,24 @@ export function Sidebar() {
   const router      = useRouter();
   const { isDark, toggle } = useTheme();
   const { canView, loading } = usePermissions();
+  const { current: company, available, switchTo } = useCompany();
+  const [companyMenuOpen, setCompanyMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/login');
     router.refresh();
   };
+
+  const handleSwitch = async (companyId: string) => {
+    setCompanyMenuOpen(false);
+    if (companyId === company?.id) return;
+    await switchTo(companyId);
+    router.refresh();
+  };
+
+  const brandColor = company?.primary_color ?? '#16a34a';
+  const brandName  = company?.name ?? 'Backoffice';
 
   const visibleItems = loading
     ? []
@@ -57,15 +73,47 @@ export function Sidebar() {
   return (
     <aside className="flex h-full w-64 flex-col border-r border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-900">
 
-      {/* Logo */}
-      <div className="flex h-16 items-center gap-3 border-b border-gray-200 px-6 dark:border-slate-700">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-600">
-          <Leaf className="h-5 w-5 text-white" />
-        </div>
-        <div>
-          <p className="text-sm font-bold text-gray-900 dark:text-slate-100">Vivero Urbano</p>
-          <p className="text-xs text-gray-500 dark:text-slate-400">Backoffice</p>
-        </div>
+      {/* Header con switcher de empresa */}
+      <div className="relative border-b border-gray-200 dark:border-slate-700">
+        <button
+          onClick={() => available.length > 1 && setCompanyMenuOpen(!companyMenuOpen)}
+          className={cn(
+            'flex h-16 w-full items-center gap-3 px-6 text-left',
+            available.length > 1 && 'hover:bg-gray-50 dark:hover:bg-slate-800'
+          )}
+        >
+          <div
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+            style={{ backgroundColor: brandColor }}
+          >
+            {company?.logo_url
+              ? <img src={company.logo_url} alt="" className="h-5 w-5 object-contain" />
+              : <Leaf className="h-5 w-5 text-white" />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold text-gray-900 dark:text-slate-100">{brandName}</p>
+            <p className="text-xs text-gray-500 dark:text-slate-400">Backoffice</p>
+          </div>
+          {available.length > 1 && (
+            <ChevronsUpDown className="h-4 w-4 shrink-0 text-gray-400" />
+          )}
+        </button>
+
+        {companyMenuOpen && available.length > 1 && (
+          <div className="absolute left-3 right-3 top-full z-20 mt-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+            {available.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => handleSwitch(c.id)}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-slate-800"
+              >
+                <div className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: c.primary_color ?? '#16a34a' }} />
+                <span className="flex-1 truncate text-gray-700 dark:text-slate-200">{c.name}</span>
+                {c.id === company?.id && <Check className="h-3.5 w-3.5 text-green-600" />}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Nav */}
