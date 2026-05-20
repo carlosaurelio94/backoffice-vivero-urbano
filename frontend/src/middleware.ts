@@ -31,7 +31,8 @@ export async function middleware(request: NextRequest) {
   const isNewPasswordPage  = path.startsWith('/nueva-contrasena');
   const isRegisterPage     = path.startsWith('/register');
   const isAuthCallback     = path.startsWith('/auth/callback');
-  const isPublic           = isLoginPage || isRecoverPage || isNewPasswordPage || isRegisterPage || isAuthCallback;
+  const isSignupApi        = path.startsWith('/api/auth/signup');
+  const isPublic           = isLoginPage || isRecoverPage || isNewPasswordPage || isRegisterPage || isAuthCallback || isSignupApi;
 
   // No autenticado → redirigir a /login (excepto páginas públicas)
   if (!user && !isPublic) {
