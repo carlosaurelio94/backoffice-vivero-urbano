@@ -1,58 +1,69 @@
 # Bocha
 
-Backoffice SaaS multi-empresa: clientes, presupuestos, proveedores y facturas.
-Cada empresa (tenant) ve únicamente sus propios datos vía Row Level Security.
-La empresa piloto es Vivero Urbano.
+Multi-company SaaS back-office: clients, quotes, suppliers and invoices.
+Each company (tenant) sees only its own data, enforced through Row Level Security.
+The pilot company is Vivero Urbano.
 
-El nombre del producto vive en `frontend/src/lib/brand.ts` — es lo único que hay
-que tocar para renombrarlo en toda la app.
+The product name lives in `frontend/src/lib/brand.ts` — that single file is all
+you need to touch to rename it across the whole app.
 
-## Arquitectura
+**Live:** https://boviverourbano.vercel.app
+
+## Architecture
 
 ```
 bocha/
 ├── frontend/          # Next.js 16 + Tailwind CSS + Supabase JS
 ├── backend/           # Spring Boot 3.3 + Java 21 + JPA
-├── supabase/          # Schema SQL + políticas RLS
+├── supabase/          # SQL schema + RLS policies
 └── .github/workflows/ # CI/CD (GitHub Actions)
 ```
 
 **Stack:**
 - **Frontend:** Next.js 16 (App Router), Tailwind CSS v4, TanStack Query v5, React Hook Form + Zod, Sonner, jsPDF
 - **Backend:** Spring Boot 3.3, Java 21, Spring Data JPA, MapStruct, Lombok, Springdoc OpenAPI
-- **Base de datos:** Supabase (PostgreSQL)
+- **Database:** Supabase (PostgreSQL)
 - **Deploy:** Vercel (frontend) + Render (backend)
 
-## Funcionalidades
+## Why multi-tenant from day one
 
-- **Clientes** — CRUD completo, estados (prospecto / cliente), búsqueda y filtros
-- **Presupuestos** — creación con ítems, importación de lista por texto, cambio de estado inline, exportación PDF
-- **Proveedores + Facturas** — circuito completo de compras
-- **Configuración** — presets de texto informativo reutilizables en presupuestos
-- **Dashboard** — métricas del mes, actividad reciente, exportar CSV
-- **Dark mode** — toggle persistido en localStorage, sin flash al recargar
-- **Autenticación** — login con Supabase Auth, rutas protegidas por middleware
-- **Multi-tenancy** — cada empresa (tenant) ve sólo sus datos. RLS estricto.
-- **Onboarding self-service** — cualquiera puede crear su empresa en `/register`
-- **Switcher de empresa** — si el user pertenece a varias, salto rápido sin re-loguear
-- **Branding por empresa** — nombre, logo y color (también en login con `?company=slug`)
-- **Planes** — Free / Pro / Enterprise con límites y página de billing
-- **Super-admin global** — vista cross-tenant para el operador del SaaS (`/admin/companies`)
+Tenant isolation does not rely on the UI filtering correctly. It is enforced in
+the database: every business table carries `company_id NOT NULL` and an RLS
+policy that rejects any read or write outside the connected user's company.
 
-## Desarrollo local
+Building it this way cost more upfront than one instance per client, but
+retrofitting multi-tenancy onto live production data would have been far worse.
 
-### Requisitos
+## Features
+
+- **Clients** — full CRUD, statuses (prospect / client), search and filters
+- **Quotes** — line items, bulk import from pasted text, inline status changes, PDF export
+- **Suppliers + Invoices** — complete purchasing cycle
+- **Settings** — reusable informative-text presets for quotes
+- **Dashboard** — monthly metrics, recent activity, CSV export
+- **Dark mode** — toggle persisted in localStorage, no flash on reload
+- **Authentication** — Supabase Auth, routes protected by middleware
+- **Multi-tenancy** — each company sees only its own data. Strict RLS.
+- **Self-service onboarding** — anyone can create their company at `/register`
+- **Company switcher** — users belonging to several companies switch without re-login
+- **Per-company branding** — name, logo and color (also on login via `?company=slug`)
+- **Plans** — Free / Pro / Enterprise with limits and a billing page
+- **Global super-admin** — cross-tenant view for the SaaS operator (`/admin/companies`)
+
+## Local development
+
+### Requirements
 
 - Node.js 20+
 - Java 21 + Maven 3.9+
-- Cuenta de Supabase
+- A Supabase account
 
 ### Frontend
 
 ```bash
 cd frontend
 cp .env.example .env.local
-# Completar variables en .env.local
+# Fill in the variables in .env.local
 npm install
 npm run dev
 ```
@@ -63,91 +74,90 @@ npm run dev
 cd backend
 export DB_URL=jdbc:postgresql://db.xxx.supabase.co:5432/postgres
 export DB_USERNAME=postgres
-export DB_PASSWORD=tu_password
+export DB_PASSWORD=your_password
 export ALLOWED_ORIGINS=http://localhost:3000
 mvn spring-boot:run
 ```
 
-## Variables de entorno
+## Environment variables
 
 ### Frontend (`frontend/.env.local`)
 
-| Variable | Descripción | Dónde encontrarla |
+| Variable | Description | Where to find it |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase | Supabase → Settings → API |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key pública | Supabase → Settings → API |
-| `NEXT_PUBLIC_API_URL` | URL del backend (opcional) | URL de Render |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | Supabase → Settings → API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public anon key | Supabase → Settings → API |
+| `NEXT_PUBLIC_API_URL` | Backend URL (optional) | Render URL |
 
 ### Backend
 
-| Variable | Descripción |
+| Variable | Description |
 |---|---|
 | `DB_URL` | `jdbc:postgresql://db.xxx.supabase.co:5432/postgres` |
 | `DB_USERNAME` | `postgres` |
-| `DB_PASSWORD` | Password de Supabase |
-| `ALLOWED_ORIGINS` | URL del frontend en Vercel |
+| `DB_PASSWORD` | Supabase password |
+| `ALLOWED_ORIGINS` | Frontend URL on Vercel |
 
-## Base de datos
+## Database
 
-Setup completo desde cero (incluye tablas, RLS, roles, permisos y vista de compat):
-
-```
-Supabase → SQL Editor → pegar supabase/schema.sql → Run
-```
-
-Crear primera empresa + usuario administrador (editar los valores arriba):
+Full setup from scratch (tables, RLS, roles, permissions and the compatibility view):
 
 ```
-Supabase → SQL Editor → pegar supabase/seed.sql → editar → Run
+Supabase → SQL Editor → paste supabase/schema.sql → Run
+```
+
+Create the first company and admin user (edit the values at the top first):
+
+```
+Supabase → SQL Editor → paste supabase/seed.sql → edit → Run
 ```
 
 ### Multi-tenancy
 
-Cada empresa es un registro en `companies`. Los usuarios pertenecen a una o
-más empresas vía `user_companies(user_id, company_id, role_id)`. Todas las
-tablas de negocio (`clients`, `quotes`, `quote_items`, `suppliers`,
-`invoices`, etc.) llevan `company_id NOT NULL` con default a la empresa
-activa del usuario (`current_company_id()`), y RLS que filtra
-por `is_member_of(company_id)`.
+Each company is a row in `companies`. Users belong to one or more companies
+through `user_companies(user_id, company_id, role_id)`. Every business table
+(`clients`, `quotes`, `quote_items`, `suppliers`, `invoices`, etc.) carries
+`company_id NOT NULL`, defaulting to the user's active company
+(`current_company_id()`), with RLS filtering on `is_member_of(company_id)`.
 
-La empresa activa se guarda en `profiles.current_company_id` y se puede
-cambiar desde el switcher del Sidebar cuando el usuario pertenece a varias.
+The active company is stored in `profiles.current_company_id` and can be changed
+from the sidebar switcher when the user belongs to more than one.
 
-### Agregar una nueva empresa (sin self-service)
+### Adding a company without self-service
 
 ```sql
 INSERT INTO companies (slug, name, primary_color)
-VALUES ('empresa-x', 'Empresa X', '#2563eb');
+VALUES ('company-x', 'Company X', '#2563eb');
 
--- después, asignar usuarios via /admin del backoffice, o:
+-- then assign users from the back-office /admin page, or:
 INSERT INTO user_companies (user_id, company_id, role_id)
 VALUES (
-  (SELECT id FROM auth.users WHERE email='user@empresa-x.com'),
-  (SELECT id FROM companies  WHERE slug='empresa-x'),
+  (SELECT id FROM auth.users WHERE email='user@company-x.com'),
+  (SELECT id FROM companies  WHERE slug='company-x'),
   (SELECT id FROM roles      WHERE name='administrador')
 );
 ```
 
-## CI/CD — GitHub Secrets requeridos
+## CI/CD — required GitHub secrets
 
-Ir a: **GitHub → repo → Settings → Secrets and variables → Actions**
+Go to **GitHub → repo → Settings → Secrets and variables → Actions**
 
-| Secret | Valor |
+| Secret | Value |
 |---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | URL de Supabase |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon key de Supabase |
-| `RENDER_DEPLOY_HOOK_URL` | Render → servicio → Settings → Deploy Hook |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
+| `RENDER_DEPLOY_HOOK_URL` | Render → service → Settings → Deploy Hook |
 
 ## Deploy
 
 ### Frontend (Vercel)
 
-- Root Directory: `frontend`
+- Root directory: `frontend`
 - Env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 ### Backend (Render)
 
-- Language: Docker / Root Directory: `backend`
+- Language: Docker / Root directory: `backend`
 - Env vars: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `ALLOWED_ORIGINS`
 - Health check path: `/actuator/health`
 
@@ -155,15 +165,15 @@ Ir a: **GitHub → repo → Settings → Secrets and variables → Actions**
 
 Swagger UI: `https://backoffice-vivero-urbano.onrender.com/swagger-ui.html`
 
-Endpoints principales bajo `/api/v1/`:
+Main endpoints under `/api/v1/`:
 
-| Método | Ruta | Descripción |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/clients` | Listar clientes (paginado) |
-| POST | `/clients` | Crear cliente |
-| PATCH | `/clients/{id}` | Actualizar cliente |
-| DELETE | `/clients/{id}` | Eliminar cliente (soft delete) |
-| GET | `/quotes` | Listar presupuestos |
-| POST | `/quotes` | Crear presupuesto |
-| PATCH | `/quotes/{id}/status` | Cambiar estado |
-| GET | `/quote-information` | Listar presets de texto |
+| GET | `/clients` | List clients (paginated) |
+| POST | `/clients` | Create client |
+| PATCH | `/clients/{id}` | Update client |
+| DELETE | `/clients/{id}` | Delete client (soft delete) |
+| GET | `/quotes` | List quotes |
+| POST | `/quotes` | Create quote |
+| PATCH | `/quotes/{id}/status` | Change status |
+| GET | `/quote-information` | List text presets |
