@@ -1,13 +1,16 @@
-# Backoffice multi-tenant
+# Bocha
 
 Backoffice SaaS multi-empresa: clientes, presupuestos, proveedores y facturas.
 Cada empresa (tenant) ve únicamente sus propios datos vía Row Level Security.
 La empresa piloto es Vivero Urbano.
 
+El nombre del producto vive en `frontend/src/lib/brand.ts` — es lo único que hay
+que tocar para renombrarlo en toda la app.
+
 ## Arquitectura
 
 ```
-backoffice-vivero-urbano/
+bocha/
 ├── frontend/          # Next.js 16 + Tailwind CSS + Supabase JS
 ├── backend/           # Spring Boot 3.3 + Java 21 + JPA
 ├── supabase/          # Schema SQL + políticas RLS

@@ -2,12 +2,13 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/layout/Providers';
+import { PRODUCT_NAME, PRODUCT_TAGLINE } from '@/lib/brand';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Backoffice · Vivero Urbano',
-  description: 'Sistema de gestión de clientes y presupuestos',
+  title: `${PRODUCT_NAME} · ${PRODUCT_TAGLINE}`,
+  description: 'Sistema de gestión de clientes, presupuestos, proveedores y facturas',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

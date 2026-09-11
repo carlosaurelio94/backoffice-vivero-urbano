@@ -2,7 +2,7 @@
 # setup-repo.ps1 — Corre esto UNA VEZ desde la carpeta del proyecto
 # Inicializa git, crea las 3 ramas y sube a GitHub
 # ============================================================
-# USO: Abre PowerShell en C:\...\backoffice-vivero-urbano y corre:
+# USO: Abre PowerShell en C:\...\bocha y corre:
 #   .\setup-repo.ps1 -GithubUser "carlosaurelio94"
 # ============================================================
 
@@ -11,7 +11,7 @@ param(
     [string]$GithubUser = "carlosaurelio94"
 )
 
-$RepoName = "backoffice-vivero-urbano"
+$RepoName = "bocha"
 $RemoteUrl = "https://github.com/$GithubUser/$RepoName.git"
 
 Write-Host "==> Inicializando repositorio git..." -ForegroundColor Cyan

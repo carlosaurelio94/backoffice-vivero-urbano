@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Leaf, Loader2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { PRODUCT_NAME } from '@/lib/brand';
 
 /**
  * El usuario llega acá con una sesión activa (establecida por /auth/callback).
@@ -44,7 +45,7 @@ export default function NuevaContrasenaPage() {
             <Leaf className="h-7 w-7 text-white" />
           </div>
           <div className="text-center">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100">Vivero Urbano</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100">{PRODUCT_NAME}</h1>
             <p className="text-sm text-gray-500 dark:text-slate-400">Nueva contraseña</p>
           </div>
         </div>

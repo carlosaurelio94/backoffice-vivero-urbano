@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Leaf, ArrowLeft, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { PRODUCT_NAME } from '@/lib/brand';
 
 export default function RecuperarPage() {
   const [username, setUsername] = useState('');
@@ -50,7 +51,7 @@ export default function RecuperarPage() {
             <Leaf className="h-7 w-7 text-white" />
           </div>
           <div className="text-center">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100">Vivero Urbano</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100">{PRODUCT_NAME}</h1>
             <p className="text-sm text-gray-500 dark:text-slate-400">Recuperar acceso</p>
           </div>
         </div>

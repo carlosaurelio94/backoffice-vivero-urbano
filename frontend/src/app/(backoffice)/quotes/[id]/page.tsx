@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Calendar, Hash, Layers, FileDown } from 'lucide-react';
 import { getQuoteById } from '@/lib/quotes';
 import { generateQuotePdf } from '@/lib/generateQuotePdf';
+import { useCompany } from '@/context/CompanyContext';
 import { Badge }  from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { formatDate, formatCurrency } from '@/lib/utils';
@@ -25,6 +26,7 @@ function DetailSkeleton() {
 export default function QuoteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router  = useRouter();
+  const { current: company } = useCompany();
 
   const { data: quote, isLoading, isError } = useQuery({
     queryKey: ['quotes', 'detail', id],
@@ -69,7 +71,7 @@ export default function QuoteDetailPage({ params }: { params: Promise<{ id: stri
             <p className="mt-0.5 text-sm text-gray-500 dark:text-slate-400">{quote.client?.name}</p>
           </div>
         </div>
-        <Button variant="secondary" onClick={() => generateQuotePdf(quote)}>
+        <Button variant="secondary" onClick={() => generateQuotePdf(quote, company?.name)}>
           <FileDown className="h-4 w-4" />
           Exportar PDF
         </Button>

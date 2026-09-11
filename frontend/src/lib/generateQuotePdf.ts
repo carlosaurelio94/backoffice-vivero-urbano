@@ -1,8 +1,14 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { Quote } from '@/types';
+import { PRODUCT_NAME } from '@/lib/brand';
 
-export function generateQuotePdf(quote: Quote): void {
+/**
+ * `companyName` es la empresa dueña del presupuesto: cada tenant tiene que ver
+ * SU nombre en el PDF que le manda al cliente. Cae en el nombre del producto
+ * solo si el contexto de empresa todavía no cargó.
+ */
+export function generateQuotePdf(quote: Quote, companyName: string = PRODUCT_NAME): void {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
   const margin = 20;
@@ -19,7 +25,7 @@ export function generateQuotePdf(quote: Quote): void {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('VIVERO URBANO', margin, 12);
+  doc.text(companyName.toUpperCase(), margin, 12);
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
@@ -128,7 +134,7 @@ export function generateQuotePdf(quote: Quote): void {
   const pageH = doc.internal.pageSize.getHeight();
   doc.setFontSize(7);
   doc.setTextColor(156, 163, 175);
-  doc.text('Vivero Urbano · Documento generado automáticamente', pageW / 2, pageH - 8, { align: 'center' });
+  doc.text(`${companyName} · Documento generado automáticamente`, pageW / 2, pageH - 8, { align: 'center' });
 
   // ── Guardar ──────────────────────────────────────────────
   doc.save(`presupuesto-${String(quote.quote_number).padStart(4, '0')}-${quote.client?.name ?? 'cliente'}.pdf`);

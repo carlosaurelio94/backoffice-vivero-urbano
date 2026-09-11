@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { CreditCard, Check, Loader2, ExternalLink } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useCompany, type Plan } from '@/context/CompanyContext';
+import { CONTACT_EMAIL } from '@/lib/brand';
 
 export default function BillingPage() {
   const { current: company, currentPlan, loading } = useCompany();
@@ -132,8 +133,8 @@ export default function BillingPage() {
         </div>
         <p className="mt-4 flex items-center gap-1.5 text-xs text-gray-400 dark:text-slate-500">
           Los upgrades hoy son manuales. Pronto:
-          <a href="mailto:soporte@boviverourbano.app" className="inline-flex items-center gap-0.5 underline">
-            soporte@boviverourbano.app <ExternalLink className="h-3 w-3" />
+          <a href={`mailto:${CONTACT_EMAIL}`} className="inline-flex items-center gap-0.5 underline">
+            {CONTACT_EMAIL} <ExternalLink className="h-3 w-3" />
           </a>
         </p>
       </section>

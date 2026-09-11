@@ -6,9 +6,10 @@ import { useSearchParams } from 'next/navigation';
 import { Leaf } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
+import { PRODUCT_NAME } from '@/lib/brand';
 
 interface Branding { name: string; primary_color: string; logo_url: string | null }
-const DEFAULT_BRAND: Branding = { name: 'Vivero Urbano', primary_color: '#16a34a', logo_url: null };
+const DEFAULT_BRAND: Branding = { name: PRODUCT_NAME, primary_color: '#16a34a', logo_url: null };
 
 export default function LoginPage() {
   // useSearchParams requiere Suspense para SSR estático en Next 15
