@@ -35,9 +35,11 @@ export async function middleware(request: NextRequest) {
   const isSignupApi        = path.startsWith('/api/auth/signup');
   const isPublic           = isLanding || isLoginPage || isRecoverPage || isNewPasswordPage || isRegisterPage || isAuthCallback || isSignupApi;
 
-  // No autenticado → redirigir a /login (excepto páginas públicas)
+  // No autenticado → mandar a la landing, no al login. Alguien que cae acá sin
+  // sesión puede ser un visitante que no sabe qué es esto; el formulario pelado
+  // no le dice nada. La landing explica y tiene el botón de ingreso.
   if (!user && !isPublic) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   // Ya autenticado intentando ir a /login → redirigir al dashboard
